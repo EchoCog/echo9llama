@@ -77,10 +77,12 @@ main() {
     build_crystal_components
     
     # Phase 3: Setup Aphrodite
-    timeout ${TIMEOUT_MINUTES}m bash -c setup_aphrodite || {
-        echo "⚠️ Aphrodite setup exceeded time limit"
+    if timeout ${TIMEOUT_MINUTES}m bash -c "$(declare -f setup_aphrodite); setup_aphrodite"; then
+        echo "✅ Aphrodite setup completed successfully"
+    else
+        echo "⚠️ Aphrodite setup failed or exceeded time limit"
         exit 1
-    }
+    fi
     
     # Phase 4: Deploy
     deploy_to_cloudflare
