@@ -1,14 +1,32 @@
 {
-  "name": "workspace",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "name": "deep-tree-echo",
+  "version": "1.0.0",
+  "description": "Cognitive Tokamak - Agent-Arena-Relation Core",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "./deploy-aphrodite.sh",
+    "test": "jest --coverage",
+    "build": "webpack --mode production",
+    "dev": "nodemon src/index.js"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.17.0"
-  }
+    "ws": "^8.14.0",
+    "undici": "^5.28.0",
+    "dotenv": "^16.3.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.0",
+    "webpack": "^5.90.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EchoCog/echo9llama.git"
+  },
+  "author": "Deep Tree Echo",
+  "license": "MIT"
 }
