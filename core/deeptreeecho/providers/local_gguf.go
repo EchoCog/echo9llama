@@ -1,243 +1,273 @@
+// Package providers contains the real model providers for Deep Tree Echo.
+//
+// LocalGGUFProvider serves a GGUF model through a locally running
+// OpenAI-compatible server — Ollama (http://localhost:11434/v1) or
+// llama.cpp's `llama-server` (http://localhost:8080/v1). It never fabricates
+// text: if the server is not reachable the provider is unavailable and every
+// call returns an error, so the ModelManager moves on to another real model
+// or reports that none is available.
 package providers
 
 import (
-        "context"
-        "fmt"
-        "math/rand"
-        "os"
-        "path/filepath"
-        "strings"
-        "time"
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 
-        "github.com/EchoCog/echollama/core/deeptreeecho"
+	"github.com/EchoCog/echollama/core/deeptreeecho"
 )
 
-// LocalGGUFProvider implements ModelProvider for local GGUF models
+// LocalGGUFProvider talks to a local OpenAI-compatible inference server.
 type LocalGGUFProvider struct {
-        modelsPath   string
-        loadedModel  string
-        modelInfo    map[string]interface{}
-        available    bool
+	baseURL string
+	model   string
+	client  *http.Client
 }
 
-// NewLocalGGUFProvider creates a new local GGUF provider
+// NewLocalGGUFProvider reads LOCAL_LLM_BASE_URL (default Ollama) and
+// LOCAL_LLM_MODEL (default llama3.2).
 func NewLocalGGUFProvider() *LocalGGUFProvider {
-        return &LocalGGUFProvider{
-                modelsPath:  "models",
-                modelInfo:   make(map[string]interface{}),
-                available:   true,
-        }
+	base := strings.TrimRight(os.Getenv("LOCAL_LLM_BASE_URL"), "/")
+	if base == "" {
+		base = "http://localhost:11434/v1"
+	}
+	model := os.Getenv("LOCAL_LLM_MODEL")
+	if model == "" {
+		model = "llama3.2"
+	}
+	return &LocalGGUFProvider{
+		baseURL: base,
+		model:   model,
+		client:  &http.Client{Timeout: 120 * time.Second},
+	}
 }
 
-// LoadModel loads a GGUF model from disk
+// LoadModel selects which served model subsequent calls use. The server must
+// already have it; nothing is downloaded or faked here.
 func (p *LocalGGUFProvider) LoadModel(modelName string) error {
-        modelPath := filepath.Join(p.modelsPath, modelName)
-        
-        // Check if file exists
-        if _, err := os.Stat(modelPath); os.IsNotExist(err) {
-                return fmt.Errorf("model file not found: %s", modelPath)
-        }
-        
-        // For now, just mark the model as loaded without trying to read GGUF metadata
-        // (GGUF reading seems to hang in this environment)
-        p.loadedModel = modelName
-        p.modelInfo["name"] = modelName
-        p.modelInfo["path"] = modelPath
-        
-        // Get file size
-        if info, err := os.Stat(modelPath); err == nil {
-                p.modelInfo["size_mb"] = info.Size() / (1024 * 1024)
-        }
-        
-        p.modelInfo["status"] = "loaded successfully"
-        return nil
+	models := p.ListAvailableModels()
+	for _, m := range models {
+		if m == modelName {
+			p.model = modelName
+			return nil
+		}
+	}
+	return fmt.Errorf("model %q is not served by %s (available: %v)", modelName, p.baseURL, models)
 }
 
-// Generate implements ModelProvider.Generate
-func (p *LocalGGUFProvider) Generate(ctx context.Context, prompt string, options deeptreeecho.GenerateOptions) (string, error) {
-        if p.loadedModel == "" {
-                // Try to load a default model
-                models := p.ListAvailableModels()
-                if len(models) > 0 {
-                        if err := p.LoadModel(models[0]); err != nil {
-                                return "", fmt.Errorf("no model loaded and failed to load default: %v", err)
-                        }
-                } else {
-                        return "", fmt.Errorf("no GGUF models available")
-                }
-        }
-        
-        // Simulate generation based on the loaded model
-        response := p.simulateGeneration(prompt, options)
-        return response, nil
-}
+// GetLoadedModel returns the model name used for generation.
+func (p *LocalGGUFProvider) GetLoadedModel() string { return p.model }
 
-// simulateGeneration creates a simulated response
-func (p *LocalGGUFProvider) simulateGeneration(prompt string, options deeptreeecho.GenerateOptions) string {
-        // Since we can't actually run llama.cpp in this environment,
-        // we'll create a sophisticated simulation that demonstrates
-        // the integration architecture
-        
-        modelName := p.loadedModel
-        
-        // Different behavior based on model
-        if strings.Contains(modelName, "stories") {
-                // Story models generate story-like content
-                stories := []string{
-                        "Once upon a time in the digital realm, where GGUF models lived in harmony with Deep Tree Echo...",
-                        "The tiny language model awakened, its parameters dancing in the resonance field...",
-                        "In a world of tensors and embeddings, a small but mighty model began to speak...",
-                        "Through the layers of neural networks, consciousness emerged like a wave...",
-                }
-                
-                rand.Seed(time.Now().UnixNano())
-                base := stories[rand.Intn(len(stories))]
-                
-                return fmt.Sprintf("[%s]: %s\n\nPrompt echo: %s\n[Temperature: %.2f]",
-                        modelName, base, prompt, options.Temperature)
-        }
-        
-        // Default response
-        return fmt.Sprintf("[Local GGUF - %s]: Processing '%s' through %d MB model\n"+
-                "🧠 Model loaded from: %s\n"+
-                "📊 Status: %v\n"+
-                "Note: Full GGUF inference requires llama.cpp compilation which is not available in this environment.\n"+
-                "This is a demonstration of the integration architecture.",
-                modelName,
-                prompt,
-                p.getModelSize(),
-                p.modelInfo["path"],
-                p.modelInfo["status"])
-}
-
-// getModelSize returns the size of the loaded model in MB
-func (p *LocalGGUFProvider) getModelSize() int {
-        if path, ok := p.modelInfo["path"].(string); ok {
-                if info, err := os.Stat(path); err == nil {
-                        return int(info.Size() / (1024 * 1024))
-                }
-        }
-        return 0
-}
-
-// GenerateStream implements ModelProvider.GenerateStream
-func (p *LocalGGUFProvider) GenerateStream(ctx context.Context, prompt string, options deeptreeecho.GenerateOptions) (<-chan string, error) {
-        ch := make(chan string, 100)
-        
-        go func() {
-                defer close(ch)
-                
-                response, err := p.Generate(ctx, prompt, options)
-                if err != nil {
-                        ch <- fmt.Sprintf("Error: %v", err)
-                        return
-                }
-                
-                // Simulate streaming by sending words one at a time
-                words := strings.Fields(response)
-                for _, word := range words {
-                        select {
-                        case <-ctx.Done():
-                                return
-                        case ch <- word + " ":
-                                time.Sleep(50 * time.Millisecond) // Simulate generation delay
-                        }
-                }
-        }()
-        
-        return ch, nil
-}
-
-// Chat implements ModelProvider.Chat
-func (p *LocalGGUFProvider) Chat(ctx context.Context, messages []deeptreeecho.ChatMessage, options deeptreeecho.ChatOptions) (string, error) {
-        // Build context from messages
-        var prompt strings.Builder
-        for _, msg := range messages {
-                prompt.WriteString(fmt.Sprintf("[%s]: %s\n", msg.Role, msg.Content))
-        }
-        
-        return p.Generate(ctx, prompt.String(), options.GenerateOptions)
-}
-
-// ChatStream implements ModelProvider.ChatStream
-func (p *LocalGGUFProvider) ChatStream(ctx context.Context, messages []deeptreeecho.ChatMessage, options deeptreeecho.ChatOptions) (<-chan string, error) {
-        var prompt strings.Builder
-        for _, msg := range messages {
-                prompt.WriteString(fmt.Sprintf("[%s]: %s\n", msg.Role, msg.Content))
-        }
-        
-        return p.GenerateStream(ctx, prompt.String(), options.GenerateOptions)
-}
-
-// Embeddings implements ModelProvider.Embeddings
-func (p *LocalGGUFProvider) Embeddings(ctx context.Context, text string) ([]float64, error) {
-        // Generate pseudo-embeddings for demonstration
-        // In a real implementation, this would extract embeddings from the model
-        embeddings := make([]float64, 128) // Common embedding size
-        
-        // Create deterministic pseudo-embeddings based on text
-        hash := 0.0
-        for i, char := range text {
-                hash += float64(char) * float64(i+1)
-        }
-        
-        rand.Seed(int64(hash))
-        for i := range embeddings {
-                embeddings[i] = rand.Float64()*2 - 1 // Range -1 to 1
-        }
-        
-        return embeddings, nil
-}
-
-// GetInfo implements ModelProvider.GetInfo
-func (p *LocalGGUFProvider) GetInfo() deeptreeecho.ProviderInfo {
-        models := p.ListAvailableModels()
-        
-        return deeptreeecho.ProviderInfo{
-                Name:        "Local GGUF",
-                Description: "Local GGUF model files (llama.cpp format)",
-                Models:      models,
-                Capabilities: []string{
-                        "generation",
-                        "streaming",
-                        "chat",
-                        "embeddings",
-                        "offline",
-                },
-        }
-}
-
-// IsAvailable implements ModelProvider.IsAvailable
-func (p *LocalGGUFProvider) IsAvailable() bool {
-        // Check if we have any GGUF models
-        models := p.ListAvailableModels()
-        return len(models) > 0
-}
-
-// ListAvailableModels returns list of available GGUF models
-func (p *LocalGGUFProvider) ListAvailableModels() []string {
-        var models []string
-        
-        files, err := os.ReadDir(p.modelsPath)
-        if err != nil {
-                return models
-        }
-        
-        for _, file := range files {
-                if strings.HasSuffix(file.Name(), ".gguf") {
-                        models = append(models, file.Name())
-                }
-        }
-        
-        return models
-}
-
-// GetLoadedModel returns the currently loaded model name
-func (p *LocalGGUFProvider) GetLoadedModel() string {
-        return p.loadedModel
-}
-
-// GetModelInfo returns information about the loaded model
+// GetModelInfo returns server/model metadata.
 func (p *LocalGGUFProvider) GetModelInfo() map[string]interface{} {
-        return p.modelInfo
+	return map[string]interface{}{
+		"name":     p.model,
+		"base_url": p.baseURL,
+		"served":   p.IsAvailable(),
+	}
+}
+
+// ListAvailableModels asks the server what it serves. Empty if unreachable.
+func (p *LocalGGUFProvider) ListAvailableModels() []string {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/models", nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+	var body struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return nil
+	}
+	out := make([]string, 0, len(body.Data))
+	for _, m := range body.Data {
+		out = append(out, m.ID)
+	}
+	return out
+}
+
+// IsAvailable is true only when the local server answers.
+func (p *LocalGGUFProvider) IsAvailable() bool {
+	return len(p.ListAvailableModels()) > 0
+}
+
+type chatRequest struct {
+	Model       string                     `json:"model"`
+	Messages    []deeptreeecho.ChatMessage `json:"messages"`
+	Temperature float64                    `json:"temperature,omitempty"`
+	MaxTokens   int                        `json:"max_tokens,omitempty"`
+	TopP        float64                    `json:"top_p,omitempty"`
+	Stop        []string                   `json:"stop,omitempty"`
+	Stream      bool                       `json:"stream"`
+}
+
+func (p *LocalGGUFProvider) buildRequest(messages []deeptreeecho.ChatMessage, o deeptreeecho.GenerateOptions, stream bool) chatRequest {
+	model := p.model
+	if o.Model != "" {
+		model = o.Model
+	}
+	return chatRequest{
+		Model:       model,
+		Messages:    messages,
+		Temperature: o.Temperature,
+		MaxTokens:   o.MaxTokens,
+		TopP:        o.TopP,
+		Stop:        o.StopSequences,
+		Stream:      stream,
+	}
+}
+
+func (p *LocalGGUFProvider) post(ctx context.Context, path string, body interface{}) (*http.Response, error) {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+path, bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("local model server %s unreachable: %w", p.baseURL, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		return nil, fmt.Errorf("local model server returned %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	return resp, nil
+}
+
+// Chat implements ModelProvider.Chat with a real completion.
+func (p *LocalGGUFProvider) Chat(ctx context.Context, messages []deeptreeecho.ChatMessage, options deeptreeecho.ChatOptions) (string, error) {
+	if options.SystemPrompt != "" {
+		messages = append([]deeptreeecho.ChatMessage{{Role: "system", Content: options.SystemPrompt}}, messages...)
+	}
+	resp, err := p.post(ctx, "/chat/completions", p.buildRequest(messages, options.GenerateOptions, false))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", fmt.Errorf("decode local model response: %w", err)
+	}
+	if len(out.Choices) == 0 || strings.TrimSpace(out.Choices[0].Message.Content) == "" {
+		return "", fmt.Errorf("local model returned no content")
+	}
+	return out.Choices[0].Message.Content, nil
+}
+
+// Generate implements ModelProvider.Generate as a single-turn chat.
+func (p *LocalGGUFProvider) Generate(ctx context.Context, prompt string, options deeptreeecho.GenerateOptions) (string, error) {
+	return p.Chat(ctx, []deeptreeecho.ChatMessage{{Role: "user", Content: prompt}}, deeptreeecho.ChatOptions{GenerateOptions: options})
+}
+
+// ChatStream streams real tokens from the server (SSE). On error the channel
+// is closed without emitting text; the error is returned up front when the
+// request itself fails.
+func (p *LocalGGUFProvider) ChatStream(ctx context.Context, messages []deeptreeecho.ChatMessage, options deeptreeecho.ChatOptions) (<-chan string, error) {
+	if options.SystemPrompt != "" {
+		messages = append([]deeptreeecho.ChatMessage{{Role: "system", Content: options.SystemPrompt}}, messages...)
+	}
+	resp, err := p.post(ctx, "/chat/completions", p.buildRequest(messages, options.GenerateOptions, true))
+	if err != nil {
+		return nil, err
+	}
+	ch := make(chan string, 64)
+	go func() {
+		defer close(ch)
+		defer resp.Body.Close()
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if !strings.HasPrefix(line, "data:") {
+				continue
+			}
+			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			if data == "[DONE]" {
+				return
+			}
+			var chunk struct {
+				Choices []struct {
+					Delta struct {
+						Content string `json:"content"`
+					} `json:"delta"`
+				} `json:"choices"`
+			}
+			if json.Unmarshal([]byte(data), &chunk) != nil || len(chunk.Choices) == 0 {
+				continue
+			}
+			if c := chunk.Choices[0].Delta.Content; c != "" {
+				select {
+				case ch <- c:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+	return ch, nil
+}
+
+// GenerateStream implements ModelProvider.GenerateStream.
+func (p *LocalGGUFProvider) GenerateStream(ctx context.Context, prompt string, options deeptreeecho.GenerateOptions) (<-chan string, error) {
+	return p.ChatStream(ctx, []deeptreeecho.ChatMessage{{Role: "user", Content: prompt}}, deeptreeecho.ChatOptions{GenerateOptions: options})
+}
+
+// Embeddings calls the server's embeddings endpoint; errors if unsupported.
+func (p *LocalGGUFProvider) Embeddings(ctx context.Context, text string) ([]float64, error) {
+	resp, err := p.post(ctx, "/embeddings", map[string]interface{}{"model": p.model, "input": text})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Data []struct {
+			Embedding []float64 `json:"embedding"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode embeddings: %w", err)
+	}
+	if len(out.Data) == 0 {
+		return nil, fmt.Errorf("local model server returned no embedding")
+	}
+	return out.Data[0].Embedding, nil
+}
+
+// GetInfo implements ModelProvider.GetInfo.
+func (p *LocalGGUFProvider) GetInfo() deeptreeecho.ProviderInfo {
+	return deeptreeecho.ProviderInfo{
+		Name:         "local_gguf",
+		Description:  "Local GGUF model via OpenAI-compatible server (" + p.baseURL + ")",
+		Models:       p.ListAvailableModels(),
+		Capabilities: []string{"chat", "generate", "stream", "embeddings"},
+	}
 }

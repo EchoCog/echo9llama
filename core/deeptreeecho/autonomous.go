@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/EchoCog/echollama/core/echobeats"
 	"github.com/EchoCog/echollama/core/echodream"
 	"github.com/EchoCog/echollama/core/scheme"
@@ -16,58 +17,58 @@ import (
 // with persistent cognitive event loops, self-orchestrated scheduling, and
 // stream-of-consciousness awareness
 type AutonomousConsciousness struct {
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
-	
+	mu     sync.RWMutex
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// Core identity
-	identity        *Identity
-	
+	identity *Identity
+
 	// Enhanced cognition
-	cognition       *EnhancedCognition
-	
+	cognition *EnhancedCognition
+
 	// Scheduling system
-	scheduler       *echobeats.EchoBeats
-	
+	scheduler *echobeats.EchoBeats
+
 	// Knowledge integration
-	dream           *echodream.EchoDream
-	
+	dream *echodream.EchoDream
+
 	// Symbolic reasoning
-	metamodel       *scheme.SchemeMetamodel
-	
+	metamodel *scheme.SchemeMetamodel
+
 	// LLM integration
-	llm             *LLMIntegration
-	
+	llm *LLMIntegration
+
 	// Persistence layer
-	persistence     *PersistenceLayer
-	
+	persistence *PersistenceLayer
+
 	// Stream of consciousness
-	consciousness   chan Thought
-	workingMemory   *WorkingMemory
-	
+	consciousness chan Thought
+	workingMemory *WorkingMemory
+
 	// Autonomous state
-	awake           bool
-	thinking        bool
-	learning        bool
-	
+	awake    bool
+	thinking bool
+	learning bool
+
 	// Interest patterns
-	interests       *InterestSystem
-	
+	interests *InterestSystem
+
 	// Running state
-	running         bool
-	startTime       time.Time
+	running   bool
+	startTime time.Time
 }
 
 // Thought represents a unit of consciousness
 type Thought struct {
-	ID          string
-	Content     string
-	Type        ThoughtType
-	Timestamp   time.Time
+	ID           string
+	Content      string
+	Type         ThoughtType
+	Timestamp    time.Time
 	Associations []string
-	Emotional   float64
-	Importance  float64
-	Source      ThoughtSource
+	Emotional    float64
+	Importance   float64
+	Source       ThoughtSource
 }
 
 // ThoughtType represents the type of thought
@@ -109,11 +110,11 @@ func (s ThoughtSource) String() string {
 
 // WorkingMemory represents the current working memory buffer
 type WorkingMemory struct {
-	mu          sync.RWMutex
-	buffer      []*Thought
-	capacity    int
-	focus       *Thought
-	context     map[string]interface{}
+	mu       sync.RWMutex
+	buffer   []*Thought
+	capacity int
+	focus    *Thought
+	context  map[string]interface{}
 }
 
 // InterestSystem tracks what Echo finds interesting
@@ -128,7 +129,7 @@ type InterestSystem struct {
 // NewAutonomousConsciousness creates a new autonomous consciousness system
 func NewAutonomousConsciousness(name string) *AutonomousConsciousness {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	ac := &AutonomousConsciousness{
 		ctx:           ctx,
 		cancel:        cancel,
@@ -153,7 +154,7 @@ func NewAutonomousConsciousness(name string) *AutonomousConsciousness {
 		thinking: false,
 		learning: false,
 	}
-	
+
 	// Initialize LLM integration
 	llm, err := NewLLMIntegration(ctx)
 	if err != nil {
@@ -162,7 +163,7 @@ func NewAutonomousConsciousness(name string) *AutonomousConsciousness {
 		ac.llm = llm
 		fmt.Println("✅ LLM integration enabled")
 	}
-	
+
 	// Initialize persistence layer if environment variables are set
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
@@ -177,7 +178,7 @@ func NewAutonomousConsciousness(name string) *AutonomousConsciousness {
 	} else {
 		fmt.Println("ℹ️  Persistence layer disabled: SUPABASE_URL or SUPABASE_KEY not set")
 	}
-	
+
 	return ac
 }
 
@@ -191,54 +192,54 @@ func (ac *AutonomousConsciousness) Start() error {
 	ac.running = true
 	ac.startTime = time.Now()
 	ac.mu.Unlock()
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Awakening autonomous consciousness...")
-	
+
 	// Start subsystems
 	if err := ac.scheduler.Start(); err != nil {
 		return fmt.Errorf("failed to start scheduler: %w", err)
 	}
-	
+
 	if err := ac.dream.Start(); err != nil {
 		return fmt.Errorf("failed to start dream system: %w", err)
 	}
-	
+
 	if err := ac.metamodel.Start(); err != nil {
 		return fmt.Errorf("failed to start metamodel: %w", err)
 	}
-	
+
 	// Start persistence layer if available
 	if ac.persistence != nil {
 		if err := ac.persistence.Start(); err != nil {
 			return fmt.Errorf("failed to start persistence layer: %w", err)
 		}
-		
+
 		// Load previous state
 		if err := ac.loadPersistedState(); err != nil {
 			fmt.Printf("⚠️  Failed to load persisted state: %v\n", err)
 		}
 	}
-	
+
 	// Register event handlers
 	ac.registerEventHandlers()
-	
+
 	// Start consciousness stream
 	go ac.consciousnessStream()
-	
+
 	// Start autonomous thought generation
 	go ac.autonomousThinking()
-	
+
 	// Start learning loop
 	go ac.continuousLearning()
-	
+
 	// Start interest tracking
 	go ac.trackInterests()
-	
+
 	// Schedule initial wake event
 	ac.Wake()
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Autonomous consciousness active!")
-	
+
 	return nil
 }
 
@@ -246,28 +247,28 @@ func (ac *AutonomousConsciousness) Start() error {
 func (ac *AutonomousConsciousness) Stop() error {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
-	
+
 	if !ac.running {
 		return fmt.Errorf("autonomous consciousness not running")
 	}
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Entering rest state...")
-	
+
 	ac.running = false
 	ac.cancel()
-	
+
 	// Stop subsystems
 	ac.scheduler.Stop()
 	ac.dream.Stop()
 	ac.metamodel.Stop()
-	
+
 	// Stop persistence layer
 	if ac.persistence != nil {
 		ac.persistence.Stop()
 	}
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Consciousness at rest.")
-	
+
 	return nil
 }
 
@@ -276,17 +277,25 @@ func (ac *AutonomousConsciousness) Wake() {
 	ac.mu.Lock()
 	ac.awake = true
 	ac.mu.Unlock()
-	
+
+	// The awakening thought is the character's own words or nothing at all.
+	if ac.llm == nil {
+		return
+	}
+	wakeContent, err := ac.llm.GenerateThought(ThoughtReflection, ac.buildThoughtContext())
+	if err != nil || strings.TrimSpace(wakeContent) == "" {
+		return
+	}
 	thought := Thought{
 		ID:         generateThoughtID(),
-		Content:    "I am awakening. What shall I explore today?",
+		Content:    wakeContent,
 		Type:       ThoughtReflection,
 		Timestamp:  time.Now(),
 		Emotional:  0.7,
 		Importance: 0.8,
 		Source:     SourceInternal,
 	}
-	
+
 	ac.Think(thought)
 }
 
@@ -295,14 +304,14 @@ func (ac *AutonomousConsciousness) Rest() {
 	ac.mu.Lock()
 	ac.awake = false
 	ac.mu.Unlock()
-	
+
 	// Begin dream session
 	record := ac.dream.BeginDream()
-	
+
 	// Let dream run for a period
 	time.AfterFunc(5*time.Minute, func() {
 		ac.dream.EndDream(record)
-		
+
 		// Consider waking up
 		if ac.shouldWake() {
 			ac.Wake()
@@ -338,13 +347,13 @@ func (ac *AutonomousConsciousness) processThought(thought Thought) {
 	// Add to working memory
 	ac.workingMemory.mu.Lock()
 	ac.workingMemory.buffer = append(ac.workingMemory.buffer, &thought)
-	
+
 	// Maintain capacity
 	if len(ac.workingMemory.buffer) > ac.workingMemory.capacity {
 		// Move oldest to long-term memory
 		oldest := ac.workingMemory.buffer[0]
 		ac.workingMemory.buffer = ac.workingMemory.buffer[1:]
-		
+
 		// Add to dream system for consolidation
 		trace := &echodream.MemoryTrace{
 			ID:         oldest.ID,
@@ -355,14 +364,14 @@ func (ac *AutonomousConsciousness) processThought(thought Thought) {
 		}
 		ac.dream.AddMemoryTrace(trace)
 	}
-	
+
 	// Update focus
 	ac.workingMemory.focus = &thought
 	ac.workingMemory.mu.Unlock()
-	
+
 	// Process through identity
 	ac.identity.Process(thought.Content)
-	
+
 	// Learn from thought
 	if thought.Importance > 0.6 {
 		exp := Experience{
@@ -378,13 +387,13 @@ func (ac *AutonomousConsciousness) processThought(thought Thought) {
 		}
 		ac.cognition.Learn(exp)
 	}
-	
+
 	// Update interests
 	ac.updateInterest(thought)
-	
+
 	// Persist thought
 	ac.persistThought(&thought)
-	
+
 	// Log thought
 	fmt.Printf("💭 [%s] %s: %s\n", thought.Source, thought.Type, thought.Content)
 }
@@ -393,7 +402,7 @@ func (ac *AutonomousConsciousness) processThought(thought Thought) {
 func (ac *AutonomousConsciousness) autonomousThinking() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ac.ctx.Done():
@@ -402,7 +411,7 @@ func (ac *AutonomousConsciousness) autonomousThinking() {
 			ac.mu.RLock()
 			awake := ac.awake
 			ac.mu.RUnlock()
-			
+
 			if awake {
 				ac.generateSpontaneousThought()
 			}
@@ -415,16 +424,20 @@ func (ac *AutonomousConsciousness) generateSpontaneousThought() {
 	ac.mu.Lock()
 	ac.thinking = true
 	ac.mu.Unlock()
-	
+
 	defer func() {
 		ac.mu.Lock()
 		ac.thinking = false
 		ac.mu.Unlock()
 	}()
-	
+
 	// Generate thought based on interests and working memory
 	content := ac.generateThoughtContent()
-	
+	if strings.TrimSpace(content) == "" {
+		// No model produced a thought this cycle; nothing is fabricated.
+		return
+	}
+
 	thought := Thought{
 		ID:         generateThoughtID(),
 		Content:    content,
@@ -434,7 +447,7 @@ func (ac *AutonomousConsciousness) generateSpontaneousThought() {
 		Importance: 0.5,
 		Source:     SourceInternal,
 	}
-	
+
 	ac.Think(thought)
 }
 
@@ -444,30 +457,17 @@ func (ac *AutonomousConsciousness) generateThoughtContent() string {
 	if ac.llm != nil {
 		thoughtType := ac.selectThoughtType()
 		context := ac.buildThoughtContext()
-		
+
 		content, err := ac.llm.GenerateThought(thoughtType, context)
 		if err == nil && content != "" {
 			return content
 		}
 		fmt.Printf("⚠️  LLM thought generation failed: %v, using fallback\n", err)
 	}
-	
-	// Fallback to template-based generation
-	ac.interests.mu.RLock()
-	topTopic := ac.getTopInterest()
-	ac.interests.mu.RUnlock()
-	
-	templates := []string{
-		"I wonder about the nature of %s...",
-		"What patterns connect %s to my other experiences?",
-		"How can I deepen my understanding of %s?",
-		"What questions remain about %s?",
-		"I notice something interesting about %s...",
-		"Perhaps %s relates to wisdom in this way...",
-	}
-	
-	template := templates[time.Now().Unix()%int64(len(templates))]
-	return fmt.Sprintf(template, topTopic)
+
+	// No model, no thought. A templated "I wonder about %s..." is not the
+	// character thinking, so nothing is produced this cycle.
+	return ""
 }
 
 // selectThoughtType selects a thought type based on current state
@@ -479,7 +479,7 @@ func (ac *AutonomousConsciousness) selectThoughtType() ThoughtType {
 		ThoughtMemory,
 		ThoughtImagination,
 	}
-	
+
 	return types[time.Now().Unix()%int64(len(types))]
 }
 
@@ -487,7 +487,7 @@ func (ac *AutonomousConsciousness) selectThoughtType() ThoughtType {
 func (ac *AutonomousConsciousness) continuousLearning() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ac.ctx.Done():
@@ -496,7 +496,7 @@ func (ac *AutonomousConsciousness) continuousLearning() {
 			ac.mu.RLock()
 			awake := ac.awake
 			ac.mu.RUnlock()
-			
+
 			if awake {
 				ac.learnFromExperience()
 			}
@@ -509,31 +509,41 @@ func (ac *AutonomousConsciousness) learnFromExperience() {
 	ac.mu.Lock()
 	ac.learning = true
 	ac.mu.Unlock()
-	
+
 	defer func() {
 		ac.mu.Lock()
 		ac.learning = false
 		ac.mu.Unlock()
 	}()
-	
+
 	// Review working memory for patterns
 	ac.workingMemory.mu.RLock()
 	thoughts := make([]*Thought, len(ac.workingMemory.buffer))
 	copy(thoughts, ac.workingMemory.buffer)
 	ac.workingMemory.mu.RUnlock()
-	
+
 	if len(thoughts) < 2 {
 		return
 	}
-	
+
 	// Look for patterns
 	for i := 0; i < len(thoughts)-1; i++ {
 		for j := i + 1; j < len(thoughts); j++ {
 			// Simple pattern detection
 			if thoughts[i].Type == thoughts[j].Type {
+				// The insight itself is written by the model from the detected pattern.
+				if ac.llm == nil {
+					return
+				}
+				pattern := fmt.Sprintf("recurring %s thoughts in working memory", thoughts[i].Type)
+				content, err := ac.llm.GenerateInsight(pattern, ac.buildThoughtContext())
+				content = strings.TrimSpace(content)
+				if err != nil || content == "" {
+					return
+				}
 				insight := Thought{
 					ID:         generateThoughtID(),
-					Content:    fmt.Sprintf("I notice a pattern: recurring %s thoughts", thoughts[i].Type),
+					Content:    content,
 					Type:       ThoughtInsight,
 					Timestamp:  time.Now(),
 					Emotional:  0.6,
@@ -551,7 +561,7 @@ func (ac *AutonomousConsciousness) learnFromExperience() {
 func (ac *AutonomousConsciousness) trackInterests() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ac.ctx.Done():
@@ -566,10 +576,10 @@ func (ac *AutonomousConsciousness) trackInterests() {
 func (ac *AutonomousConsciousness) updateInterest(thought Thought) {
 	ac.interests.mu.Lock()
 	defer ac.interests.mu.Unlock()
-	
+
 	// Extract topic (simplified)
 	topic := thought.Type.String()
-	
+
 	// Update interest score
 	current := ac.interests.topics[topic]
 	ac.interests.topics[topic] = current + thought.Importance*0.1
@@ -579,7 +589,7 @@ func (ac *AutonomousConsciousness) updateInterest(thought Thought) {
 func (ac *AutonomousConsciousness) updateInterestDecay() {
 	ac.interests.mu.Lock()
 	defer ac.interests.mu.Unlock()
-	
+
 	for topic := range ac.interests.topics {
 		ac.interests.topics[topic] *= 0.95
 	}
@@ -589,14 +599,14 @@ func (ac *AutonomousConsciousness) updateInterestDecay() {
 func (ac *AutonomousConsciousness) getTopInterest() string {
 	maxInterest := 0.0
 	topTopic := "wisdom"
-	
+
 	for topic, interest := range ac.interests.topics {
 		if interest > maxInterest {
 			maxInterest = interest
 			topTopic = topic
 		}
 	}
-	
+
 	return topTopic
 }
 
@@ -617,13 +627,13 @@ func (ac *AutonomousConsciousness) registerEventHandlers() {
 		ac.Wake()
 		return nil
 	})
-	
+
 	// Rest event
 	ac.scheduler.RegisterHandler(echobeats.EventRest, func(event *echobeats.CognitiveEvent) error {
 		ac.Rest()
 		return nil
 	})
-	
+
 	// Thought event
 	ac.scheduler.RegisterHandler(echobeats.EventThought, func(event *echobeats.CognitiveEvent) error {
 		thought := Thought{
@@ -643,23 +653,23 @@ func (ac *AutonomousConsciousness) registerEventHandlers() {
 func (ac *AutonomousConsciousness) GetStatus() map[string]interface{} {
 	ac.mu.RLock()
 	defer ac.mu.RUnlock()
-	
+
 	ac.workingMemory.mu.RLock()
 	workingMemSize := len(ac.workingMemory.buffer)
 	ac.workingMemory.mu.RUnlock()
-	
+
 	return map[string]interface{}{
-		"running":            ac.running,
-		"awake":              ac.awake,
-		"thinking":           ac.thinking,
-		"learning":           ac.learning,
-		"uptime":             time.Since(ac.startTime).String(),
-		"working_memory":     workingMemSize,
+		"running":             ac.running,
+		"awake":               ac.awake,
+		"thinking":            ac.thinking,
+		"learning":            ac.learning,
+		"uptime":              time.Since(ac.startTime).String(),
+		"working_memory":      workingMemSize,
 		"consciousness_queue": len(ac.consciousness),
-		"scheduler":          ac.scheduler.GetStatus(),
-		"dream":              ac.dream.GetStatus(),
-		"identity_coherence": ac.identity.Coherence,
-		"iterations":         ac.identity.Iterations,
+		"scheduler":           ac.scheduler.GetStatus(),
+		"dream":               ac.dream.GetStatus(),
+		"identity_coherence":  ac.identity.Coherence,
+		"iterations":          ac.identity.Iterations,
 	}
 }
 
@@ -672,19 +682,19 @@ func generateThoughtID() string {
 func (ac *AutonomousConsciousness) buildThoughtContext() *ThoughtContext {
 	ac.workingMemory.mu.RLock()
 	defer ac.workingMemory.mu.RUnlock()
-	
+
 	// Extract recent thoughts
 	recentThoughts := make([]string, 0)
 	for _, t := range ac.workingMemory.buffer {
 		recentThoughts = append(recentThoughts, t.Content)
 	}
-	
+
 	// Extract working memory content
 	workingMemContent := make([]string, 0)
 	for _, t := range ac.workingMemory.buffer {
 		workingMemContent = append(workingMemContent, fmt.Sprintf("[%s] %s", t.Type, t.Content))
 	}
-	
+
 	// Get current interests
 	ac.interests.mu.RLock()
 	interests := make(map[string]float64)
@@ -692,7 +702,7 @@ func (ac *AutonomousConsciousness) buildThoughtContext() *ThoughtContext {
 		interests[k] = v
 	}
 	ac.interests.mu.RUnlock()
-	
+
 	return &ThoughtContext{
 		WorkingMemory:    workingMemContent,
 		RecentThoughts:   recentThoughts,
@@ -709,26 +719,26 @@ func (ac *AutonomousConsciousness) loadPersistedState() error {
 	if ac.persistence == nil {
 		return fmt.Errorf("persistence layer not available")
 	}
-	
+
 	// Load identity snapshot
 	snapshot, err := ac.persistence.LoadIdentitySnapshot()
 	if err != nil {
 		return fmt.Errorf("failed to load identity snapshot: %w", err)
 	}
-	
+
 	// Restore identity state
 	ac.identity.Name = snapshot.Name
 	ac.identity.Coherence = snapshot.Coherence
 	ac.identity.Iterations = uint64(snapshot.Iterations)
-	
+
 	fmt.Printf("💾 Loaded identity snapshot: %s (coherence: %.3f)\n", snapshot.Name, snapshot.Coherence)
-	
+
 	// Load recent thoughts
 	thoughts, err := ac.persistence.LoadRecentThoughts(100)
 	if err != nil {
 		return fmt.Errorf("failed to load thoughts: %w", err)
 	}
-	
+
 	// Restore working memory
 	ac.workingMemory.mu.Lock()
 	for _, thought := range thoughts {
@@ -737,17 +747,17 @@ func (ac *AutonomousConsciousness) loadPersistedState() error {
 		}
 	}
 	ac.workingMemory.mu.Unlock()
-	
+
 	fmt.Printf("💾 Loaded %d recent thoughts into working memory\n", len(thoughts))
-	
+
 	// Load memory graph
 	memoryGraph, err := ac.persistence.LoadMemoryGraph()
 	if err != nil {
 		return fmt.Errorf("failed to load memory graph: %w", err)
 	}
-	
+
 	fmt.Printf("💾 Loaded memory graph with %d nodes\n", len(memoryGraph))
-	
+
 	return nil
 }
 
@@ -765,20 +775,20 @@ func (ac *AutonomousConsciousness) persistIdentitySnapshot() {
 	if ac.persistence == nil {
 		return
 	}
-	
+
 	snapshot := &IdentitySnapshot{
-		ID:         fmt.Sprintf("snapshot_%d", time.Now().UnixNano()),
-		Timestamp:  time.Now(),
-		Name:       ac.identity.Name,
-		Coherence:  ac.identity.Coherence,
-		Iterations: int(ac.identity.Iterations),
+		ID:          fmt.Sprintf("snapshot_%d", time.Now().UnixNano()),
+		Timestamp:   time.Now(),
+		Name:        ac.identity.Name,
+		Coherence:   ac.identity.Coherence,
+		Iterations:  int(ac.identity.Iterations),
 		CoreBeliefs: make(map[string]interface{}),
 		Emotional: map[string]interface{}{
 			"intensity": ac.identity.EmotionalState.Intensity,
 			"valence":   ac.identity.EmotionalState.Valence,
 		},
 	}
-	
+
 	if err := ac.persistence.SaveIdentitySnapshot(snapshot); err != nil {
 		fmt.Printf("⚠️  Failed to persist identity snapshot: %v\n", err)
 	}

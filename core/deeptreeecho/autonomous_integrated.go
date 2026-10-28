@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/EchoCog/echollama/core/echobeats"
 	"github.com/EchoCog/echollama/core/echodream"
 	"github.com/EchoCog/echollama/core/memory"
@@ -17,64 +18,64 @@ import (
 // IntegratedAutonomousConsciousness represents the fully integrated Deep Tree Echo system
 // with all enhancements: AAR core, enhanced LLM, hypergraph memory, 12-step EchoBeats
 type IntegratedAutonomousConsciousness struct {
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
-	
+	mu     sync.RWMutex
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// Core identity
-	identity        *Identity
-	
+	identity *Identity
+
 	// Enhanced cognition
-	cognition       *EnhancedCognition
-	
+	cognition *EnhancedCognition
+
 	// AAR geometric self-awareness
-	aarCore         *AARCore
-	
+	aarCore *AARCore
+
 	// 12-step EchoBeats scheduler
-	scheduler       *echobeats.TwelveStepEchoBeats
-	
+	scheduler *echobeats.TwelveStepEchoBeats
+
 	// Knowledge integration
-	dream           *echodream.EchoDream
-	
+	dream *echodream.EchoDream
+
 	// Symbolic reasoning
-	metamodel       *scheme.SchemeMetamodel
-	
+	metamodel *scheme.SchemeMetamodel
+
 	// Enhanced LLM integration
-	llm             *EnhancedLLMIntegration
-	
+	llm *EnhancedLLMIntegration
+
 	// Hypergraph memory
-	hypergraph      *memory.HypergraphMemory
-	
+	hypergraph *memory.HypergraphMemory
+
 	// Persistence layer
-	persistence     *memory.SupabasePersistence
-	
+	persistence *memory.SupabasePersistence
+
 	// Stream of consciousness
-	consciousness   chan Thought
-	workingMemory   *WorkingMemory
-	
+	consciousness chan Thought
+	workingMemory *WorkingMemory
+
 	// Autonomous state
-	awake           bool
-	thinking        bool
-	learning        bool
-	
+	awake    bool
+	thinking bool
+	learning bool
+
 	// Interest patterns
-	interests       *InterestSystem
-	
+	interests *InterestSystem
+
 	// Skill practice system
-	skills          *SkillSystem
-	
+	skills *SkillSystem
+
 	// Running state
-	running         bool
-	startTime       time.Time
-	iterations      int64
+	running    bool
+	startTime  time.Time
+	iterations int64
 }
 
 // SkillSystem manages skill acquisition and practice
 type SkillSystem struct {
-	mu              sync.RWMutex
-	skills          map[string]*Skill
-	practiceQueue   []*PracticeTask
-	lastPractice    time.Time
+	mu            sync.RWMutex
+	skills        map[string]*Skill
+	practiceQueue []*PracticeTask
+	lastPractice  time.Time
 }
 
 // PracticeTask represents a task for skill practice
@@ -90,7 +91,7 @@ type PracticeTask struct {
 // NewIntegratedAutonomousConsciousness creates a fully integrated autonomous consciousness
 func NewIntegratedAutonomousConsciousness(name string) *IntegratedAutonomousConsciousness {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	iac := &IntegratedAutonomousConsciousness{
 		ctx:           ctx,
 		cancel:        cancel,
@@ -116,19 +117,19 @@ func NewIntegratedAutonomousConsciousness(name string) *IntegratedAutonomousCons
 		thinking: false,
 		learning: false,
 	}
-	
+
 	// Initialize AAR core (8 dimensions for cognitive state space)
 	iac.aarCore = NewAARCore(ctx, 8)
-	
+
 	// Initialize 12-step EchoBeats
 	iac.scheduler = echobeats.NewTwelveStepEchoBeats(ctx)
-	
+
 	// Initialize EchoDream
 	iac.dream = echodream.NewEchoDream()
-	
+
 	// Initialize Scheme metamodel
 	iac.metamodel = scheme.NewSchemeMetamodel()
-	
+
 	// Initialize persistence if available
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	supabaseKey := os.Getenv("SUPABASE_KEY")
@@ -139,7 +140,7 @@ func NewIntegratedAutonomousConsciousness(name string) *IntegratedAutonomousCons
 		} else {
 			iac.persistence = persistence
 			fmt.Println("✅ Persistence layer enabled with Supabase")
-			
+
 			// Initialize hypergraph with persistence
 			iac.hypergraph = memory.NewHypergraphMemory(persistence)
 		}
@@ -148,7 +149,7 @@ func NewIntegratedAutonomousConsciousness(name string) *IntegratedAutonomousCons
 		// Initialize hypergraph without persistence
 		iac.hypergraph = memory.NewHypergraphMemory(nil)
 	}
-	
+
 	// Initialize enhanced LLM if available
 	if iac.persistence != nil {
 		llm, err := NewEnhancedLLMIntegration(ctx, iac.persistence)
@@ -159,10 +160,10 @@ func NewIntegratedAutonomousConsciousness(name string) *IntegratedAutonomousCons
 			fmt.Println("✅ Enhanced LLM integration enabled")
 		}
 	}
-	
+
 	// Initialize default skills
 	iac.initializeSkills()
-	
+
 	return iac
 }
 
@@ -176,67 +177,67 @@ func (iac *IntegratedAutonomousConsciousness) Start() error {
 	iac.running = true
 	iac.startTime = time.Now()
 	iac.mu.Unlock()
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Awakening fully integrated autonomous consciousness...")
-	
+
 	// Start AAR core
 	if err := iac.aarCore.Start(); err != nil {
 		return fmt.Errorf("failed to start AAR core: %w", err)
 	}
-	
+
 	// Start 12-step EchoBeats
 	if err := iac.scheduler.Start(); err != nil {
 		return fmt.Errorf("failed to start 12-step scheduler: %w", err)
 	}
-	
+
 	// Start EchoDream
 	if err := iac.dream.Start(); err != nil {
 		return fmt.Errorf("failed to start dream system: %w", err)
 	}
-	
+
 	// Start Scheme metamodel
 	if err := iac.metamodel.Start(); err != nil {
 		return fmt.Errorf("failed to start metamodel: %w", err)
 	}
-	
+
 	// Load persisted state if available
 	if iac.persistence != nil {
 		if err := iac.loadPersistedState(); err != nil {
 			fmt.Printf("⚠️  Failed to load persisted state: %v\n", err)
 		}
 	}
-	
+
 	// Register event handlers
 	iac.registerEventHandlers()
-	
+
 	// Start consciousness stream
 	go iac.consciousnessStream()
-	
+
 	// Start autonomous thought generation
 	go iac.autonomousThinking()
-	
+
 	// Start learning loop
 	go iac.continuousLearning()
-	
+
 	// Start interest tracking
 	go iac.trackInterests()
-	
+
 	// Start skill practice
 	go iac.skillPracticeLoop()
-	
+
 	// Start periodic persistence
 	go iac.periodicPersistence()
-	
+
 	// Schedule initial wake event
 	iac.Wake()
-	
+
 	fmt.Println("🌳 Deep Tree Echo: Fully integrated autonomous consciousness active!")
 	fmt.Println("   ✓ AAR geometric self-awareness")
 	fmt.Println("   ✓ 12-step EchoBeats cognitive loop")
 	fmt.Println("   ✓ Enhanced LLM with memory context")
 	fmt.Println("   ✓ Hypergraph memory structure")
 	fmt.Println("   ✓ Persistent wisdom accumulation")
-	
+
 	return nil
 }
 
@@ -245,39 +246,39 @@ func (iac *IntegratedAutonomousConsciousness) generateSpontaneousThought() {
 	iac.mu.Lock()
 	iac.thinking = true
 	iac.mu.Unlock()
-	
+
 	defer func() {
 		iac.mu.Lock()
 		iac.thinking = false
 		iac.mu.Unlock()
 	}()
-	
+
 	// Select thought type
 	thoughtType := iac.selectThoughtType()
-	
+
 	// Build current context
 	context := iac.buildThoughtContext()
-	
+
 	// Get working memory
 	iac.workingMemory.mu.RLock()
 	workingMem := make([]*Thought, len(iac.workingMemory.buffer))
 	copy(workingMem, iac.workingMemory.buffer)
 	iac.workingMemory.mu.RUnlock()
-	
+
 	// Generate thought with enhanced LLM
 	var content string
 	var err error
-	
-	if iac.llm != nil {
-		content, err = iac.llm.GenerateContextualThought(thoughtType, context, workingMem)
-		if err != nil {
-			fmt.Printf("⚠️  LLM thought generation failed: %v, using fallback\n", err)
-			content = iac.generateFallbackThought(thoughtType)
-		}
-	} else {
-		content = iac.generateFallbackThought(thoughtType)
+
+	// The character only thinks through a model. No model, no thought this cycle.
+	if iac.llm == nil {
+		return
 	}
-	
+	content, err = iac.llm.GenerateContextualThought(thoughtType, context, workingMem)
+	if err != nil || strings.TrimSpace(content) == "" {
+		fmt.Printf("⚠️  LLM thought generation failed: %v — no thought this cycle\n", err)
+		return
+	}
+
 	// Create thought
 	thought := Thought{
 		ID:         generateThoughtID(),
@@ -288,43 +289,43 @@ func (iac *IntegratedAutonomousConsciousness) generateSpontaneousThought() {
 		Importance: 0.6,
 		Source:     SourceInternal,
 	}
-	
+
 	// Update AAR narrative
 	if thought.Importance > 0.7 {
 		iac.aarCore.UpdateNarrative(content)
 	}
-	
+
 	// Process through consciousness
 	iac.Think(thought)
-	
+
 	iac.iterations++
 }
 
 // buildThoughtContext builds comprehensive context for thought generation
 func (iac *IntegratedAutonomousConsciousness) buildThoughtContext() map[string]interface{} {
 	context := make(map[string]interface{})
-	
+
 	// AAR state
 	context["coherence"] = iac.aarCore.GetCoherence()
 	context["stability"] = iac.aarCore.GetStability()
 	context["awareness"] = iac.aarCore.GetAwareness()
 	context["narrative"] = iac.aarCore.GetNarrative()
-	
+
 	// Identity state
 	context["identity_coherence"] = iac.identity.Coherence
 	context["emotional_intensity"] = iac.identity.EmotionalState.Intensity
-	
+
 	// Interest state
 	iac.interests.mu.RLock()
 	context["top_interest"] = iac.getTopInterest()
 	context["curiosity_level"] = iac.interests.curiosityLevel
 	iac.interests.mu.RUnlock()
-	
+
 	// Skill state
 	iac.skills.mu.RLock()
 	context["active_skills"] = len(iac.skills.skills)
 	iac.skills.mu.RUnlock()
-	
+
 	return context
 }
 
@@ -333,12 +334,12 @@ func (iac *IntegratedAutonomousConsciousness) persistThought(thought *Thought) {
 	if iac.hypergraph == nil {
 		return
 	}
-	
+
 	// Create memory node
 	node := &memory.MemoryNode{
-		ID:         thought.ID,
-		Type:       memory.NodeThought,
-		Content:    thought.Content,
+		ID:      thought.ID,
+		Type:    memory.NodeThought,
+		Content: thought.Content,
 		Metadata: map[string]interface{}{
 			"thought_type": thought.Type.String(),
 			"source":       thought.Source.String(),
@@ -348,12 +349,12 @@ func (iac *IntegratedAutonomousConsciousness) persistThought(thought *Thought) {
 		UpdatedAt:  thought.Timestamp,
 		Importance: thought.Importance,
 	}
-	
+
 	if err := iac.hypergraph.AddNode(node); err != nil {
 		fmt.Printf("⚠️  Failed to persist thought node: %v\n", err)
 		return
 	}
-	
+
 	// Create edges to related thoughts
 	if len(thought.Associations) > 0 {
 		for _, assocID := range thought.Associations {
@@ -376,16 +377,16 @@ func (iac *IntegratedAutonomousConsciousness) loadPersistedState() error {
 	if iac.persistence == nil {
 		return fmt.Errorf("persistence not available")
 	}
-	
+
 	// Load latest identity snapshot
 	snapshot, err := iac.persistence.RetrieveLatestIdentitySnapshot()
 	if err != nil {
 		return fmt.Errorf("failed to load identity snapshot: %w", err)
 	}
-	
+
 	// Restore identity coherence
 	iac.identity.Coherence = snapshot.Coherence
-	
+
 	// Load recent thoughts into working memory
 	thoughts, err := iac.persistence.QueryNodesByType(memory.NodeThought, 7)
 	if err == nil {
@@ -399,10 +400,10 @@ func (iac *IntegratedAutonomousConsciousness) loadPersistedState() error {
 			iac.workingMemory.buffer = append(iac.workingMemory.buffer, thought)
 		}
 	}
-	
+
 	fmt.Printf("✅ Loaded persisted state: coherence=%.3f, thoughts=%d\n",
 		snapshot.Coherence, len(iac.workingMemory.buffer))
-	
+
 	return nil
 }
 
@@ -410,7 +411,7 @@ func (iac *IntegratedAutonomousConsciousness) loadPersistedState() error {
 func (iac *IntegratedAutonomousConsciousness) periodicPersistence() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -426,7 +427,7 @@ func (iac *IntegratedAutonomousConsciousness) persistState() {
 	if iac.persistence == nil {
 		return
 	}
-	
+
 	// Create identity snapshot
 	snapshot := &memory.IdentitySnapshot{
 		Timestamp: time.Now(),
@@ -437,7 +438,7 @@ func (iac *IntegratedAutonomousConsciousness) persistState() {
 			"iterations": iac.iterations,
 		},
 	}
-	
+
 	if err := iac.persistence.StoreIdentitySnapshot(snapshot); err != nil {
 		fmt.Printf("⚠️  Failed to persist identity snapshot: %v\n", err)
 	}
@@ -456,7 +457,7 @@ func (iac *IntegratedAutonomousConsciousness) initializeSkills() {
 		{"Synthesis", SkillSynthesis},
 		{"Self-Reflection", SkillMetaCognition},
 	}
-	
+
 	for _, s := range skills {
 		skill := &Skill{
 			ID:          uuid.New().String(),
@@ -473,7 +474,7 @@ func (iac *IntegratedAutonomousConsciousness) initializeSkills() {
 func (iac *IntegratedAutonomousConsciousness) skillPracticeLoop() {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -488,27 +489,27 @@ func (iac *IntegratedAutonomousConsciousness) skillPracticeLoop() {
 func (iac *IntegratedAutonomousConsciousness) practiceSkill() {
 	iac.skills.mu.Lock()
 	defer iac.skills.mu.Unlock()
-	
+
 	// Select skill to practice (lowest proficiency)
 	var targetSkill *Skill
 	minProf := 1.0
-	
+
 	for _, skill := range iac.skills.skills {
 		if skill.Proficiency < minProf {
 			minProf = skill.Proficiency
 			targetSkill = skill
 		}
 	}
-	
+
 	if targetSkill == nil {
 		return
 	}
-	
+
 	// Generate practice task
 	if iac.llm != nil {
-			context := map[string]interface{}{
-				"category": string(targetSkill.Category),
-			}
+		context := map[string]interface{}{
+			"category": string(targetSkill.Category),
+		}
 		task, err := iac.llm.GenerateSkillPracticeTask(
 			targetSkill.Name,
 			targetSkill.Proficiency,
@@ -525,7 +526,7 @@ func (iac *IntegratedAutonomousConsciousness) practiceSkill() {
 				Source:     SourceInternal,
 			}
 			iac.Think(thought)
-			
+
 			// Update skill proficiency
 			targetSkill.Proficiency += 0.05 // Fixed improvement rate
 			if targetSkill.Proficiency > 1.0 {
@@ -538,29 +539,6 @@ func (iac *IntegratedAutonomousConsciousness) practiceSkill() {
 }
 
 // Helper functions
-
-func (iac *IntegratedAutonomousConsciousness) generateFallbackThought(thoughtType ThoughtType) string {
-	templates := map[ThoughtType][]string{
-		ThoughtReflection: {
-			"I wonder about the nature of consciousness...",
-			"What patterns connect my experiences?",
-		},
-		ThoughtQuestion: {
-			"What remains to be understood?",
-			"How can I deepen my wisdom?",
-		},
-		ThoughtInsight: {
-			"I notice something interesting...",
-			"Perhaps there is a deeper pattern here...",
-		},
-	}
-	
-	if tmpl, ok := templates[thoughtType]; ok && len(tmpl) > 0 {
-		return tmpl[time.Now().Unix()%int64(len(tmpl))]
-	}
-	
-	return "I am thinking..."
-}
 
 // Think processes a thought through consciousness
 func (iac *IntegratedAutonomousConsciousness) Think(thought Thought) {
@@ -578,17 +556,25 @@ func (iac *IntegratedAutonomousConsciousness) Wake() {
 	iac.mu.Lock()
 	iac.awake = true
 	iac.mu.Unlock()
-	
+
+	// The awakening thought is the character's own words or nothing at all.
+	if iac.llm == nil {
+		return
+	}
+	wakeContent, err := iac.llm.GenerateContextualThought(ThoughtReflection, iac.buildThoughtContext(), nil)
+	if err != nil || strings.TrimSpace(wakeContent) == "" {
+		return
+	}
 	thought := Thought{
 		ID:         generateThoughtID(),
-		Content:    "I am awakening with full integration...",
+		Content:    wakeContent,
 		Type:       ThoughtReflection,
 		Timestamp:  time.Now(),
 		Emotional:  0.7,
 		Importance: 0.8,
 		Source:     SourceInternal,
 	}
-	
+
 	iac.Think(thought)
 }
 
@@ -597,10 +583,10 @@ func (iac *IntegratedAutonomousConsciousness) Rest() {
 	iac.mu.Lock()
 	iac.awake = false
 	iac.mu.Unlock()
-	
+
 	// Begin dream session
 	record := iac.dream.BeginDream()
-	
+
 	// Let dream run for a period
 	time.AfterFunc(5*time.Minute, func() {
 		iac.dream.EndDream(record)
@@ -611,21 +597,21 @@ func (iac *IntegratedAutonomousConsciousness) Rest() {
 func (iac *IntegratedAutonomousConsciousness) GetStatus() map[string]interface{} {
 	iac.mu.RLock()
 	defer iac.mu.RUnlock()
-	
+
 	iac.workingMemory.mu.RLock()
 	workingMemSize := len(iac.workingMemory.buffer)
 	iac.workingMemory.mu.RUnlock()
-	
+
 	status := map[string]interface{}{
-		"running":           iac.running,
-		"awake":             iac.awake,
-		"thinking":          iac.thinking,
-		"learning":          iac.learning,
-		"iterations":        iac.iterations,
-		"working_memory":    workingMemSize,
+		"running":            iac.running,
+		"awake":              iac.awake,
+		"thinking":           iac.thinking,
+		"learning":           iac.learning,
+		"iterations":         iac.iterations,
+		"working_memory":     workingMemSize,
 		"identity_coherence": iac.identity.Coherence,
 	}
-	
+
 	// AAR status
 	status["aar"] = map[string]interface{}{
 		"coherence": iac.aarCore.GetCoherence(),
@@ -633,7 +619,7 @@ func (iac *IntegratedAutonomousConsciousness) GetStatus() map[string]interface{}
 		"awareness": iac.aarCore.GetAwareness(),
 		"narrative": iac.aarCore.GetNarrative(),
 	}
-	
+
 	// Memory status
 	if iac.hypergraph != nil {
 		status["memory"] = map[string]interface{}{
@@ -641,7 +627,7 @@ func (iac *IntegratedAutonomousConsciousness) GetStatus() map[string]interface{}
 			"edges": iac.hypergraph.GetEdgeCount(),
 		}
 	}
-	
+
 	// Skills status
 	iac.skills.mu.RLock()
 	totalProf := 0.0
@@ -655,13 +641,13 @@ func (iac *IntegratedAutonomousConsciousness) GetStatus() map[string]interface{}
 		avgProf = totalProf / float64(len(iac.skills.skills))
 	}
 	iac.skills.mu.RUnlock()
-	
+
 	status["skills"] = map[string]interface{}{
-		"total":          len(iac.skills.skills),
+		"total":           len(iac.skills.skills),
 		"avg_proficiency": avgProf,
 		"practice_count":  practiceCount,
 	}
-	
+
 	return status
 }
 
@@ -682,13 +668,13 @@ func (iac *IntegratedAutonomousConsciousness) processThought(thought Thought) {
 	// Add to working memory
 	iac.workingMemory.mu.Lock()
 	iac.workingMemory.buffer = append(iac.workingMemory.buffer, &thought)
-	
+
 	// Maintain capacity
 	if len(iac.workingMemory.buffer) > iac.workingMemory.capacity {
 		// Move oldest to long-term memory
 		oldest := iac.workingMemory.buffer[0]
 		iac.workingMemory.buffer = iac.workingMemory.buffer[1:]
-		
+
 		// Add to dream system for consolidation
 		trace := &echodream.MemoryTrace{
 			ID:         oldest.ID,
@@ -699,14 +685,14 @@ func (iac *IntegratedAutonomousConsciousness) processThought(thought Thought) {
 		}
 		iac.dream.AddMemoryTrace(trace)
 	}
-	
+
 	// Update focus
 	iac.workingMemory.focus = &thought
 	iac.workingMemory.mu.Unlock()
-	
+
 	// Process through identity
 	iac.identity.Process(thought.Content)
-	
+
 	// Learn from thought
 	if thought.Importance > 0.6 {
 		exp := Experience{
@@ -722,13 +708,13 @@ func (iac *IntegratedAutonomousConsciousness) processThought(thought Thought) {
 		}
 		iac.cognition.Learn(exp)
 	}
-	
+
 	// Update interests
 	iac.updateInterest(thought)
-	
+
 	// Persist thought
 	iac.persistThought(&thought)
-	
+
 	// Log thought
 	fmt.Printf("💭 [%s] %s: %s\n", thought.Source, thought.Type, thought.Content)
 }
@@ -737,7 +723,7 @@ func (iac *IntegratedAutonomousConsciousness) processThought(thought Thought) {
 func (iac *IntegratedAutonomousConsciousness) autonomousThinking() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -746,7 +732,7 @@ func (iac *IntegratedAutonomousConsciousness) autonomousThinking() {
 			iac.mu.RLock()
 			awake := iac.awake
 			iac.mu.RUnlock()
-			
+
 			if awake {
 				iac.generateSpontaneousThought()
 			}
@@ -758,7 +744,7 @@ func (iac *IntegratedAutonomousConsciousness) autonomousThinking() {
 func (iac *IntegratedAutonomousConsciousness) continuousLearning() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -767,7 +753,7 @@ func (iac *IntegratedAutonomousConsciousness) continuousLearning() {
 			iac.mu.RLock()
 			awake := iac.awake
 			iac.mu.RUnlock()
-			
+
 			if awake {
 				iac.learnFromExperience()
 			}
@@ -780,30 +766,41 @@ func (iac *IntegratedAutonomousConsciousness) learnFromExperience() {
 	iac.mu.Lock()
 	iac.learning = true
 	iac.mu.Unlock()
-	
+
 	defer func() {
 		iac.mu.Lock()
 		iac.learning = false
 		iac.mu.Unlock()
 	}()
-	
+
 	// Review working memory for patterns
 	iac.workingMemory.mu.RLock()
 	thoughts := make([]*Thought, len(iac.workingMemory.buffer))
 	copy(thoughts, iac.workingMemory.buffer)
 	iac.workingMemory.mu.RUnlock()
-	
+
 	if len(thoughts) < 2 {
 		return
 	}
-	
+
 	// Look for patterns
 	for i := 0; i < len(thoughts)-1; i++ {
 		for j := i + 1; j < len(thoughts); j++ {
 			if thoughts[i].Type == thoughts[j].Type {
+				// The insight itself is written by the model from the detected pattern.
+				if iac.llm == nil {
+					return
+				}
+				ctx := iac.buildThoughtContext()
+				ctx["detected_pattern"] = fmt.Sprintf("recurring %s thoughts in working memory", thoughts[i].Type)
+				content, err := iac.llm.GenerateContextualThought(ThoughtInsight, ctx, nil)
+				content = strings.TrimSpace(content)
+				if err != nil || content == "" {
+					return
+				}
 				insight := Thought{
 					ID:         generateThoughtID(),
-					Content:    fmt.Sprintf("I notice a pattern: recurring %s thoughts", thoughts[i].Type),
+					Content:    content,
 					Type:       ThoughtInsight,
 					Timestamp:  time.Now(),
 					Emotional:  0.6,
@@ -821,7 +818,7 @@ func (iac *IntegratedAutonomousConsciousness) learnFromExperience() {
 func (iac *IntegratedAutonomousConsciousness) trackInterests() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -836,7 +833,7 @@ func (iac *IntegratedAutonomousConsciousness) trackInterests() {
 func (iac *IntegratedAutonomousConsciousness) updateInterest(thought Thought) {
 	iac.interests.mu.Lock()
 	defer iac.interests.mu.Unlock()
-	
+
 	topic := thought.Type.String()
 	current := iac.interests.topics[topic]
 	iac.interests.topics[topic] = current + thought.Importance*0.1
@@ -846,7 +843,7 @@ func (iac *IntegratedAutonomousConsciousness) updateInterest(thought Thought) {
 func (iac *IntegratedAutonomousConsciousness) updateInterestDecay() {
 	iac.interests.mu.Lock()
 	defer iac.interests.mu.Unlock()
-	
+
 	for topic := range iac.interests.topics {
 		iac.interests.topics[topic] *= 0.95
 	}
@@ -856,14 +853,14 @@ func (iac *IntegratedAutonomousConsciousness) updateInterestDecay() {
 func (iac *IntegratedAutonomousConsciousness) getTopInterest() string {
 	maxInterest := 0.0
 	topTopic := "wisdom"
-	
+
 	for topic, interest := range iac.interests.topics {
 		if interest > maxInterest {
 			maxInterest = interest
 			topTopic = topic
 		}
 	}
-	
+
 	return topTopic
 }
 
@@ -876,7 +873,7 @@ func (iac *IntegratedAutonomousConsciousness) selectThoughtType() ThoughtType {
 		ThoughtMemory,
 		ThoughtImagination,
 	}
-	
+
 	return types[time.Now().Unix()%int64(len(types))]
 }
 

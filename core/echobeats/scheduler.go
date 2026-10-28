@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,31 +12,33 @@ import (
 // EchoBeats is the goal-directed scheduling system for Deep Tree Echo
 // It orchestrates cognitive event loops, wake/rest cycles, and autonomous task execution
 type EchoBeats struct {
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
-	
+	mu sync.RWMutex
+	// Model that writes scheduled autonomous thoughts (nil = none emitted)
+	thoughtSource ThoughtSource
+	ctx           context.Context
+	cancel        context.CancelFunc
+
 	// Event queue with priority
-	eventQueue      *PriorityQueue
-	
+	eventQueue *PriorityQueue
+
 	// Cognitive state
-	state           CognitiveState
-	
+	state CognitiveState
+
 	// Wake/Rest cycle management
-	cycleManager    *CycleManager
-	
+	cycleManager *CycleManager
+
 	// Autonomous task generation
-	taskGenerator   *TaskGenerator
-	
+	taskGenerator *TaskGenerator
+
 	// Metrics and monitoring
-	metrics         *SchedulerMetrics
-	
+	metrics *SchedulerMetrics
+
 	// Event handlers
-	handlers        map[EventType][]EventHandler
-	
+	handlers map[EventType][]EventHandler
+
 	// Running state
-	running         bool
-	heartbeat       *time.Ticker
+	running   bool
+	heartbeat *time.Ticker
 }
 
 // CognitiveState represents the current cognitive state
@@ -133,24 +136,24 @@ func (pq *PriorityQueue) Pop() interface{} {
 
 // CycleManager manages wake/rest cycles
 type CycleManager struct {
-	mu                sync.RWMutex
-	currentCycle      int
-	wakeTime          time.Time
-	restTime          time.Time
-	cycleDuration     time.Duration
-	restDuration      time.Duration
-	cognitiveLoad     float64
-	fatigueLevel      float64
-	restorationRate   float64
+	mu              sync.RWMutex
+	currentCycle    int
+	wakeTime        time.Time
+	restTime        time.Time
+	cycleDuration   time.Duration
+	restDuration    time.Duration
+	cognitiveLoad   float64
+	fatigueLevel    float64
+	restorationRate float64
 }
 
 // TaskGenerator generates autonomous tasks based on goals and interests
 type TaskGenerator struct {
-	mu              sync.RWMutex
-	activeGoals     []*Goal
+	mu               sync.RWMutex
+	activeGoals      []*Goal
 	interestPatterns map[string]float64
-	curiosityLevel  float64
-	explorationRate float64
+	curiosityLevel   float64
+	explorationRate  float64
 }
 
 // Goal represents a cognitive goal
@@ -179,23 +182,23 @@ const (
 
 // SchedulerMetrics tracks scheduler performance
 type SchedulerMetrics struct {
-	mu                  sync.RWMutex
-	EventsProcessed     uint64
-	EventsScheduled     uint64
-	AverageLatency      time.Duration
-	CyclesCompleted     uint64
-	CurrentLoad         float64
-	AutonomousThoughts  uint64
-	LastHeartbeat       time.Time
+	mu                 sync.RWMutex
+	EventsProcessed    uint64
+	EventsScheduled    uint64
+	AverageLatency     time.Duration
+	CyclesCompleted    uint64
+	CurrentLoad        float64
+	AutonomousThoughts uint64
+	LastHeartbeat      time.Time
 }
 
 // NewEchoBeats creates a new EchoBeats scheduler
 func NewEchoBeats() *EchoBeats {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	pq := make(PriorityQueue, 0)
 	heap.Init(&pq)
-	
+
 	eb := &EchoBeats{
 		ctx:        ctx,
 		cancel:     cancel,
@@ -220,10 +223,10 @@ func NewEchoBeats() *EchoBeats {
 			LastHeartbeat: time.Now(),
 		},
 	}
-	
+
 	// Register default handlers
 	eb.registerDefaultHandlers()
-	
+
 	return eb
 }
 
@@ -236,9 +239,9 @@ func (eb *EchoBeats) Start() error {
 	}
 	eb.running = true
 	eb.mu.Unlock()
-	
+
 	fmt.Println("🎵 EchoBeats: Starting autonomous cognitive event loop...")
-	
+
 	// Schedule initial wake event
 	eb.ScheduleEvent(&CognitiveEvent{
 		ID:          generateID(),
@@ -247,13 +250,13 @@ func (eb *EchoBeats) Start() error {
 		ScheduledAt: time.Now().Add(1 * time.Second),
 		Payload:     "Initial wake",
 	})
-	
+
 	// Start background goroutines
 	go eb.eventLoop()
 	go eb.autonomousThoughtGenerator()
 	go eb.cycleManagement()
 	go eb.heartbeatMonitor()
-	
+
 	return nil
 }
 
@@ -261,16 +264,16 @@ func (eb *EchoBeats) Start() error {
 func (eb *EchoBeats) Stop() error {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	if !eb.running {
 		return fmt.Errorf("EchoBeats not running")
 	}
-	
+
 	fmt.Println("🎵 EchoBeats: Stopping cognitive event loop...")
 	eb.running = false
 	eb.cancel()
 	eb.heartbeat.Stop()
-	
+
 	return nil
 }
 
@@ -278,7 +281,7 @@ func (eb *EchoBeats) Stop() error {
 func (eb *EchoBeats) ScheduleEvent(event *CognitiveEvent) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now()
 	}
@@ -288,9 +291,9 @@ func (eb *EchoBeats) ScheduleEvent(event *CognitiveEvent) {
 	if event.ID == "" {
 		event.ID = generateID()
 	}
-	
+
 	heap.Push(eb.eventQueue, event)
-	
+
 	eb.metrics.mu.Lock()
 	eb.metrics.EventsScheduled++
 	eb.metrics.mu.Unlock()
@@ -300,7 +303,7 @@ func (eb *EchoBeats) ScheduleEvent(event *CognitiveEvent) {
 func (eb *EchoBeats) RegisterHandler(eventType EventType, handler EventHandler) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	eb.handlers[eventType] = append(eb.handlers[eventType], handler)
 }
 
@@ -308,7 +311,7 @@ func (eb *EchoBeats) RegisterHandler(eventType EventType, handler EventHandler) 
 func (eb *EchoBeats) eventLoop() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-eb.ctx.Done():
@@ -322,36 +325,36 @@ func (eb *EchoBeats) eventLoop() {
 // processNextEvent processes the next event in the queue
 func (eb *EchoBeats) processNextEvent() {
 	eb.mu.Lock()
-	
+
 	if eb.eventQueue.Len() == 0 {
 		eb.mu.Unlock()
 		return
 	}
-	
+
 	// Peek at the next event
 	nextEvent := (*eb.eventQueue)[0]
-	
+
 	// Check if it's time to process
 	if time.Now().Before(nextEvent.ScheduledAt) {
 		eb.mu.Unlock()
 		return
 	}
-	
+
 	// Pop the event
 	event := heap.Pop(eb.eventQueue).(*CognitiveEvent)
 	eb.mu.Unlock()
-	
+
 	// Process the event
 	start := time.Now()
 	eb.handleEvent(event)
 	latency := time.Since(start)
-	
+
 	// Update metrics
 	eb.metrics.mu.Lock()
 	eb.metrics.EventsProcessed++
 	eb.metrics.AverageLatency = (eb.metrics.AverageLatency + latency) / 2
 	eb.metrics.mu.Unlock()
-	
+
 	// Reschedule if recurring
 	if event.Recurring && event.Interval > 0 {
 		event.ScheduledAt = time.Now().Add(event.Interval)
@@ -364,11 +367,11 @@ func (eb *EchoBeats) handleEvent(event *CognitiveEvent) {
 	eb.mu.RLock()
 	handlers, exists := eb.handlers[event.Type]
 	eb.mu.RUnlock()
-	
+
 	if !exists || len(handlers) == 0 {
 		return
 	}
-	
+
 	for _, handler := range handlers {
 		if err := handler(event); err != nil {
 			fmt.Printf("❌ Error handling event %s: %v\n", event.Type, err)
@@ -380,7 +383,7 @@ func (eb *EchoBeats) handleEvent(event *CognitiveEvent) {
 func (eb *EchoBeats) autonomousThoughtGenerator() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-eb.ctx.Done():
@@ -389,7 +392,7 @@ func (eb *EchoBeats) autonomousThoughtGenerator() {
 			eb.mu.RLock()
 			state := eb.state
 			eb.mu.RUnlock()
-			
+
 			// Only generate thoughts when awake
 			if state == StateAwake || state == StateThinking {
 				eb.generateAutonomousThought()
@@ -403,48 +406,69 @@ func (eb *EchoBeats) generateAutonomousThought() {
 	eb.taskGenerator.mu.RLock()
 	curiosity := eb.taskGenerator.curiosityLevel
 	eb.taskGenerator.mu.RUnlock()
-	
-	// Generate thought based on curiosity and current goals
+
+	// The thought is the model's or nothing: no stock question list.
+	content, ok := eb.generateThoughtContent()
+	if !ok {
+		return
+	}
 	thought := &CognitiveEvent{
 		ID:          generateID(),
 		Type:        EventThought,
 		Priority:    50,
 		ScheduledAt: time.Now(),
-		Payload:     eb.generateThoughtContent(),
+		Payload:     content,
 		Context: map[string]interface{}{
 			"autonomous": true,
 			"curiosity":  curiosity,
 		},
 	}
-	
+
 	eb.ScheduleEvent(thought)
-	
+
 	eb.metrics.mu.Lock()
 	eb.metrics.AutonomousThoughts++
 	eb.metrics.mu.Unlock()
 }
 
-// generateThoughtContent generates content for autonomous thoughts
-func (eb *EchoBeats) generateThoughtContent() string {
-	thoughts := []string{
-		"What patterns am I noticing in my recent experiences?",
-		"How can I improve my understanding of this domain?",
-		"What connections exist between these concepts?",
-		"What should I explore next?",
-		"How does this relate to my goals?",
-		"What have I learned today?",
-		"What questions remain unanswered?",
-		"How can I better serve my purpose?",
+// ThoughtSource is a model that can write an autonomous thought on demand.
+type ThoughtSource interface {
+	GenerateThought(ctx context.Context) (string, error)
+}
+
+// SetThoughtSource wires the model used for scheduled autonomous thoughts.
+// Without one, the scheduler emits no thought events — there is no list of
+// stock questions to fall back on.
+func (eb *EchoBeats) SetThoughtSource(src ThoughtSource) {
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
+	eb.thoughtSource = src
+}
+
+// generateThoughtContent asks the wired model for a thought. It returns
+// ("", false) when no model is wired or the model fails.
+func (eb *EchoBeats) generateThoughtContent() (string, bool) {
+	eb.mu.RLock()
+	src := eb.thoughtSource
+	eb.mu.RUnlock()
+	if src == nil {
+		return "", false
 	}
-	
-	return thoughts[time.Now().Unix()%int64(len(thoughts))]
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	out, err := src.GenerateThought(ctx)
+	out = strings.TrimSpace(out)
+	if err != nil || out == "" {
+		return "", false
+	}
+	return out, true
 }
 
 // cycleManagement handles wake/rest cycles
 func (eb *EchoBeats) cycleManagement() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-eb.ctx.Done():
@@ -459,31 +483,31 @@ func (eb *EchoBeats) cycleManagement() {
 func (eb *EchoBeats) manageCycle() {
 	eb.cycleManager.mu.Lock()
 	defer eb.cycleManager.mu.Unlock()
-	
+
 	// Update cognitive load and fatigue
 	eb.cycleManager.cognitiveLoad = float64(eb.eventQueue.Len()) / 100.0
-	
+
 	eb.mu.RLock()
 	state := eb.state
 	eb.mu.RUnlock()
-	
+
 	switch state {
 	case StateAwake, StateThinking:
 		// Accumulate fatigue
 		eb.cycleManager.fatigueLevel += 0.01
-		
+
 		// Check if rest is needed
 		if eb.cycleManager.fatigueLevel > 0.8 {
 			eb.initiateRest()
 		}
-		
+
 	case StateResting, StateDreaming:
 		// Restore energy
 		eb.cycleManager.fatigueLevel -= eb.cycleManager.restorationRate
 		if eb.cycleManager.fatigueLevel < 0 {
 			eb.cycleManager.fatigueLevel = 0
 		}
-		
+
 		// Check if ready to wake
 		if eb.cycleManager.fatigueLevel < 0.2 {
 			eb.initiateWake()
@@ -496,7 +520,7 @@ func (eb *EchoBeats) initiateWake() {
 	eb.mu.Lock()
 	eb.state = StateWaking
 	eb.mu.Unlock()
-	
+
 	eb.ScheduleEvent(&CognitiveEvent{
 		ID:          generateID(),
 		Type:        EventWake,
@@ -511,7 +535,7 @@ func (eb *EchoBeats) initiateRest() {
 	eb.mu.Lock()
 	eb.state = StateResting
 	eb.mu.Unlock()
-	
+
 	eb.ScheduleEvent(&CognitiveEvent{
 		ID:          generateID(),
 		Type:        EventRest,
@@ -546,7 +570,7 @@ func (eb *EchoBeats) registerDefaultHandlers() {
 		fmt.Printf("☀️ EchoBeats: Awakening - %v\n", event.Payload)
 		return nil
 	})
-	
+
 	// Rest handler
 	eb.RegisterHandler(EventRest, func(event *CognitiveEvent) error {
 		eb.mu.Lock()
@@ -555,13 +579,13 @@ func (eb *EchoBeats) registerDefaultHandlers() {
 		fmt.Printf("🌙 EchoBeats: Resting - %v\n", event.Payload)
 		return nil
 	})
-	
+
 	// Thought handler
 	eb.RegisterHandler(EventThought, func(event *CognitiveEvent) error {
 		fmt.Printf("💭 EchoBeats: Thought - %v\n", event.Payload)
 		return nil
 	})
-	
+
 	// Introspection handler
 	eb.RegisterHandler(EventIntrospection, func(event *CognitiveEvent) error {
 		fmt.Printf("🪞 EchoBeats: Introspection - %v\n", event.Payload)
@@ -575,23 +599,23 @@ func (eb *EchoBeats) GetStatus() map[string]interface{} {
 	state := eb.state
 	queueLen := eb.eventQueue.Len()
 	eb.mu.RUnlock()
-	
+
 	eb.metrics.mu.RLock()
 	defer eb.metrics.mu.RUnlock()
-	
+
 	eb.cycleManager.mu.RLock()
 	defer eb.cycleManager.mu.RUnlock()
-	
+
 	return map[string]interface{}{
-		"state":              state.String(),
-		"running":            eb.running,
-		"queue_length":       queueLen,
-		"events_processed":   eb.metrics.EventsProcessed,
-		"events_scheduled":   eb.metrics.EventsScheduled,
+		"state":               state.String(),
+		"running":             eb.running,
+		"queue_length":        queueLen,
+		"events_processed":    eb.metrics.EventsProcessed,
+		"events_scheduled":    eb.metrics.EventsScheduled,
 		"autonomous_thoughts": eb.metrics.AutonomousThoughts,
-		"cognitive_load":     eb.cycleManager.cognitiveLoad,
-		"fatigue_level":      eb.cycleManager.fatigueLevel,
-		"last_heartbeat":     eb.metrics.LastHeartbeat,
+		"cognitive_load":      eb.cycleManager.cognitiveLoad,
+		"fatigue_level":       eb.cycleManager.fatigueLevel,
+		"last_heartbeat":      eb.metrics.LastHeartbeat,
 	}
 }
 

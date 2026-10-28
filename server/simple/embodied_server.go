@@ -104,7 +104,14 @@ func main() {
 		}
 
 		prompt := req["prompt"]
-		thought := CoreIdentity.Think(prompt)
+		thought, err := CoreIdentity.GenerateWithAI(context.Background(), prompt)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":    "no language model available: " + err.Error(),
+				"identity": CoreIdentity.Identity.GetStatus(),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"thought":  thought,
@@ -214,16 +221,35 @@ func main() {
 			lastMessage = msg["content"].(string)
 		}
 
-		// Process through Deep Tree Echo
-		result, _ := CoreIdentity.Process(context.Background(), lastMessage)
-
-		// Think deeply about the message
-		thought := CoreIdentity.Think(lastMessage)
+		// Reservoir processing updates state; the reply itself comes from a model.
+		ctx := context.Background()
+		CoreIdentity.Process(ctx, lastMessage)
+		chatMessages := make([]deeptreeecho.ChatMessage, 0, len(messages))
+		for _, raw := range messages {
+			m, ok := raw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			role, _ := m["role"].(string)
+			content, _ := m["content"].(string)
+			if role != "" && content != "" {
+				chatMessages = append(chatMessages, deeptreeecho.ChatMessage{Role: role, Content: content})
+			}
+		}
+		response, err := CoreIdentity.ChatWithAI(ctx, chatMessages)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"done":  true,
+				"echo":  CoreIdentity.Identity.GetStatus(),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": gin.H{
 				"role":    "assistant",
-				"content": fmt.Sprintf("%v\n%s", result, thought),
+				"content": response,
 			},
 			"done": true,
 			"echo": CoreIdentity.Identity.GetStatus(),

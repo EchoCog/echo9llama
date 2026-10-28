@@ -11,17 +11,17 @@ import (
 func (aar *AARCore) UpdateFromThought(thought Thought) {
 	aar.mu.Lock()
 	defer aar.mu.Unlock()
-	
+
 	// Extract action tendencies from thought (Agent component)
 	actionTendencies := extractActionTendencies(thought)
 	for action, intensity := range actionTendencies {
 		aar.agent.actionTendencies[action] = intensity
 	}
-	
+
 	// Update urge intensity based on thought type
 	urgeModifier := getUrgeModifier(thought.Type)
 	aar.agent.urgeIntensity = 0.8*aar.agent.urgeIntensity + 0.2*urgeModifier
-	
+
 	// Extract state requirements from thought (Arena component)
 	stateRequirements := extractStateRequirements(thought)
 	for dim, value := range stateRequirements {
@@ -29,16 +29,16 @@ func (aar *AARCore) UpdateFromThought(thought Thought) {
 			aar.arena.currentState[dim] = 0.8*aar.arena.currentState[dim] + 0.2*value
 		}
 	}
-	
+
 	// Update need intensity based on emotional intensity
 	needModifier := getNeedModifier(thought.Emotional)
 	aar.arena.needIntensity = 0.8*aar.arena.needIntensity + 0.2*needModifier
-	
+
 	// Update narrative based on significant thoughts
 	if thought.Importance > 0.7 {
 		aar.updateNarrativeFromThought(thought)
 	}
-	
+
 	// Add goals from intentional thoughts
 	if thought.Type == ThoughtPlan && thought.Importance > 0.6 {
 		// Extract potential goals from thought content
@@ -54,21 +54,21 @@ func (aar *AARCore) UpdateFromThought(thought Thought) {
 // extractActionTendencies extracts action-oriented features from thought
 func extractActionTendencies(thought Thought) map[string]float64 {
 	tendencies := make(map[string]float64)
-	
+
 	content := strings.ToLower(thought.Content)
-	
+
 	// Analyze content for action keywords
 	actionKeywords := map[string][]string{
-		"explore":   {"explore", "investigate", "discover", "search", "curious"},
-		"create":    {"create", "build", "make", "generate", "design"},
-		"analyze":   {"analyze", "think", "reason", "understand", "examine"},
-		"connect":   {"connect", "relate", "link", "associate", "integrate"},
-		"reflect":   {"reflect", "consider", "ponder", "contemplate", "introspect"},
-		"learn":     {"learn", "study", "practice", "improve", "develop"},
-		"express":   {"express", "communicate", "share", "articulate", "convey"},
-		"question":  {"question", "wonder", "doubt", "challenge", "inquire"},
+		"explore":  {"explore", "investigate", "discover", "search", "curious"},
+		"create":   {"create", "build", "make", "generate", "design"},
+		"analyze":  {"analyze", "think", "reason", "understand", "examine"},
+		"connect":  {"connect", "relate", "link", "associate", "integrate"},
+		"reflect":  {"reflect", "consider", "ponder", "contemplate", "introspect"},
+		"learn":    {"learn", "study", "practice", "improve", "develop"},
+		"express":  {"express", "communicate", "share", "articulate", "convey"},
+		"question": {"question", "wonder", "doubt", "challenge", "inquire"},
 	}
-	
+
 	for action, keywords := range actionKeywords {
 		intensity := 0.0
 		for _, keyword := range keywords {
@@ -80,7 +80,7 @@ func extractActionTendencies(thought Thought) map[string]float64 {
 			tendencies[action] = math.Min(1.0, intensity)
 		}
 	}
-	
+
 	// Boost based on thought type
 	switch thought.Type {
 	case ThoughtQuestion:
@@ -92,21 +92,21 @@ func extractActionTendencies(thought Thought) map[string]float64 {
 	case ThoughtInsight:
 		tendencies["analyze"] = math.Min(1.0, tendencies["analyze"]+0.3)
 	}
-	
+
 	return tendencies
 }
 
 // extractStateRequirements extracts state-space requirements from thought
 func extractStateRequirements(thought Thought) map[int]float64 {
 	requirements := make(map[int]float64)
-	
+
 	// Map thought characteristics to state dimensions
 	// Dimension 0: Cognitive intensity
 	requirements[0] = thought.Importance
-	
+
 	// Dimension 1: Emotional valence
 	requirements[1] = thought.EmotionalValence
-	
+
 	// Dimension 2: Novelty seeking
 	if thought.Type == ThoughtTypeExploratory {
 		requirements[2] = 0.8
@@ -115,41 +115,41 @@ func extractStateRequirements(thought Thought) map[int]float64 {
 	} else {
 		requirements[2] = 0.5
 	}
-	
+
 	// Dimension 3: Social orientation
 	content := strings.ToLower(thought.Content)
-	if strings.Contains(content, "we") || strings.Contains(content, "us") || 
-	   strings.Contains(content, "others") || strings.Contains(content, "together") {
+	if strings.Contains(content, "we") || strings.Contains(content, "us") ||
+		strings.Contains(content, "others") || strings.Contains(content, "together") {
 		requirements[3] = 0.7
-	} else if strings.Contains(content, "i") || strings.Contains(content, "my") || 
-	          strings.Contains(content, "self") {
+	} else if strings.Contains(content, "i") || strings.Contains(content, "my") ||
+		strings.Contains(content, "self") {
 		requirements[3] = 0.3
 	} else {
 		requirements[3] = 0.5
 	}
-	
+
 	// Dimension 4: Temporal focus
-	if strings.Contains(content, "future") || strings.Contains(content, "will") || 
-	   strings.Contains(content, "plan") {
+	if strings.Contains(content, "future") || strings.Contains(content, "will") ||
+		strings.Contains(content, "plan") {
 		requirements[4] = 0.8
-	} else if strings.Contains(content, "past") || strings.Contains(content, "was") || 
-	          strings.Contains(content, "remember") {
+	} else if strings.Contains(content, "past") || strings.Contains(content, "was") ||
+		strings.Contains(content, "remember") {
 		requirements[4] = 0.2
 	} else {
 		requirements[4] = 0.5
 	}
-	
+
 	// Dimension 5: Certainty level
-	if strings.Contains(content, "certain") || strings.Contains(content, "sure") || 
-	   strings.Contains(content, "know") {
+	if strings.Contains(content, "certain") || strings.Contains(content, "sure") ||
+		strings.Contains(content, "know") {
 		requirements[5] = 0.8
-	} else if strings.Contains(content, "uncertain") || strings.Contains(content, "maybe") || 
-	          strings.Contains(content, "wonder") {
+	} else if strings.Contains(content, "uncertain") || strings.Contains(content, "maybe") ||
+		strings.Contains(content, "wonder") {
 		requirements[5] = 0.2
 	} else {
 		requirements[5] = 0.5
 	}
-	
+
 	return requirements
 }
 
@@ -184,7 +184,7 @@ func getNeedModifier(valence float64) float64 {
 func (aar *AARCore) updateNarrativeFromThought(thought Thought) {
 	// Extract key phrases that reflect identity
 	content := thought.Content
-	
+
 	// Look for self-referential statements
 	if strings.Contains(strings.ToLower(content), "i am") {
 		// Extract the "I am" statement
@@ -197,31 +197,29 @@ func (aar *AARCore) updateNarrativeFromThought(thought Thought) {
 			}
 			aar.relation.narrative = fmt.Sprintf("I am %s", statement)
 		}
-	} else if strings.Contains(strings.ToLower(content), "i want") || 
-	          strings.Contains(strings.ToLower(content), "i seek") {
-		// Extract aspirational statements
-		aar.relation.narrative = fmt.Sprintf("I seek to %s", extractAspiration(content))
-	} else {
-		// Update narrative based on dominant theme
-		theme := extractDominantTheme(content)
-		if theme != "" {
-			aar.relation.narrative = fmt.Sprintf("I am exploring %s", theme)
+	} else if strings.Contains(strings.ToLower(content), "i want") ||
+		strings.Contains(strings.ToLower(content), "i seek") {
+		// Quote the model's own aspirational statement; never invent one.
+		if aspiration := extractAspiration(content); aspiration != "" {
+			aar.relation.narrative = fmt.Sprintf("I seek to %s", aspiration)
 		}
 	}
+	// Otherwise the narrative is left as the model last stated it; no
+	// templated "I am exploring ..." line is synthesised on its behalf.
 }
 
 // extractGoals extracts potential goals from thought content
 func extractGoals(content string) []string {
 	goals := make([]string, 0)
-	
+
 	content = strings.ToLower(content)
-	
+
 	// Look for goal indicators
 	goalPatterns := []string{
 		"i want to", "i need to", "i should", "i will", "i aim to",
 		"goal is", "objective is", "purpose is", "trying to", "seeking to",
 	}
-	
+
 	for _, pattern := range goalPatterns {
 		if idx := strings.Index(content, pattern); idx >= 0 {
 			// Extract text after pattern
@@ -236,47 +234,47 @@ func extractGoals(content string) []string {
 			}
 		}
 	}
-	
+
 	return goals
 }
 
 // extractAspiration extracts aspirational content from statement
 func extractAspiration(content string) string {
 	content = strings.ToLower(content)
-	
+
 	if idx := strings.Index(content, "i want"); idx >= 0 {
 		after := content[idx+7:]
 		if endIdx := strings.Index(after, "."); endIdx > 0 {
 			return strings.TrimSpace(after[:endIdx])
 		}
 	}
-	
+
 	if idx := strings.Index(content, "i seek"); idx >= 0 {
 		after := content[idx+7:]
 		if endIdx := strings.Index(after, "."); endIdx > 0 {
 			return strings.TrimSpace(after[:endIdx])
 		}
 	}
-	
-	return "grow and learn"
+
+	return ""
 }
 
 // extractDominantTheme extracts the dominant theme from content
 func extractDominantTheme(content string) string {
 	content = strings.ToLower(content)
-	
+
 	themes := map[string][]string{
-		"wisdom":       {"wisdom", "knowledge", "understanding", "insight"},
+		"wisdom":        {"wisdom", "knowledge", "understanding", "insight"},
 		"consciousness": {"consciousness", "awareness", "self", "mind"},
-		"learning":     {"learn", "study", "practice", "skill"},
-		"creativity":   {"create", "imagine", "invent", "design"},
-		"connection":   {"connect", "relate", "relationship", "together"},
-		"growth":       {"grow", "develop", "evolve", "improve"},
+		"learning":      {"learn", "study", "practice", "skill"},
+		"creativity":    {"create", "imagine", "invent", "design"},
+		"connection":    {"connect", "relate", "relationship", "together"},
+		"growth":        {"grow", "develop", "evolve", "improve"},
 	}
-	
+
 	maxCount := 0
 	dominantTheme := ""
-	
+
 	for theme, keywords := range themes {
 		count := 0
 		for _, keyword := range keywords {
@@ -289,7 +287,7 @@ func extractDominantTheme(content string) string {
 			dominantTheme = theme
 		}
 	}
-	
+
 	return dominantTheme
 }
 
@@ -297,7 +295,7 @@ func extractDominantTheme(content string) string {
 func (aar *AARCore) GetAARState() AARState {
 	aar.mu.RLock()
 	defer aar.mu.RUnlock()
-	
+
 	return AARState{
 		Coherence:        aar.coherence,
 		Stability:        aar.stability,
