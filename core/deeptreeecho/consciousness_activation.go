@@ -25,9 +25,27 @@ func (iac *IntegratedAutonomousConsciousness) ActivatedConsciousnessLoop() {
 		case <-iac.ctx.Done():
 			return
 		default:
-			// Execute one full cognitive cycle with 12-step EchoBeats
+			// Execute one full cognitive cycle with 12-step EchoBeats, then
+			// wait for the next beat. A step the model skipped is paced the
+			// same way, so a missing or failing model never spins the loop.
 			iac.executeCognitiveCycle()
+			if !iac.waitForNextStep() {
+				return
+			}
 		}
+	}
+}
+
+// integratedStepInterval paces the 12-step loop between beats.
+const integratedStepInterval = time.Second
+
+// waitForNextStep sleeps one beat or returns false when the loop is cancelled.
+func (iac *IntegratedAutonomousConsciousness) waitForNextStep() bool {
+	select {
+	case <-iac.ctx.Done():
+		return false
+	case <-time.After(integratedStepInterval):
+		return true
 	}
 }
 
@@ -45,7 +63,9 @@ func (iac *IntegratedAutonomousConsciousness) executeCognitiveCycle() {
 	// Generate thought with full integration
 	thought := iac.generateIntegratedThought(thoughtType, mode, context)
 	if strings.TrimSpace(thought.Content) == "" {
-		// No model output this step; skip rather than fabricate a thought.
+		// No model output this step: the beat still advances, nothing is
+		// fabricated, and the caller paces the next attempt.
+		iac.scheduler.AdvanceStep()
 		return
 	}
 

@@ -227,7 +227,6 @@ func main() {
 		// Extract messages
 		messagesRaw := req["messages"].([]interface{})
 		messages := []deeptreeecho.ChatMessage{}
-		lastMessage := ""
 
 		for _, msgRaw := range messagesRaw {
 			msg := msgRaw.(map[string]interface{})
@@ -238,10 +237,6 @@ func main() {
 				Role:    role,
 				Content: content,
 			})
-
-			if role == "user" {
-				lastMessage = content
-			}
 		}
 
 		// Try to chat with AI if available

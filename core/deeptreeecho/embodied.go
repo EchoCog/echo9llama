@@ -477,16 +477,18 @@ func getEmotionFrequency(emotion string) float64 {
 
 // GenerateWithAI generates text using integrated AI models
 func (ec *EmbodiedCognition) GenerateWithAI(ctx context.Context, prompt string) (string, error) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
-
-	// Process prompt through embodied cognition first
+	// Process takes ec.mu itself, and the model call can take seconds: neither
+	// may run while this method holds the lock, or the request deadlocks.
 	ec.Process(ctx, prompt)
+
+	ec.mu.Lock()
+	temperature := ec.GlobalState.Energy // Use energy as temperature
+	ec.mu.Unlock()
 
 	// Generate using model manager
 	options := GenerateOptions{
-		Temperature: ec.GlobalState.Energy, // Use energy as temperature
-		Model:       "",                    // Use default
+		Temperature: temperature,
+		Model:       "", // Use default
 	}
 
 	response, err := ec.Models.Generate(ctx, prompt, options)
@@ -502,18 +504,20 @@ func (ec *EmbodiedCognition) GenerateWithAI(ctx context.Context, prompt string) 
 
 // ChatWithAI handles chat interactions with AI models
 func (ec *EmbodiedCognition) ChatWithAI(ctx context.Context, messages []ChatMessage) (string, error) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
-
-	// Process messages through embodied cognition
+	// Process takes ec.mu itself, and the model call can take seconds: neither
+	// may run while this method holds the lock, or the request deadlocks.
 	for _, msg := range messages {
 		ec.Process(ctx, msg.Content)
 	}
 
+	ec.mu.Lock()
+	temperature := ec.GlobalState.Energy
+	ec.mu.Unlock()
+
 	// Chat using model manager
 	options := ChatOptions{
 		GenerateOptions: GenerateOptions{
-			Temperature: ec.GlobalState.Energy,
+			Temperature: temperature,
 		},
 	}
 
@@ -1446,20 +1450,15 @@ func (ec *EmbodiedCognition) SpawnSpecialist(specialization string) (string, err
 }
 
 // DelegateToSpecialist delegates a task to a specialized sub-agent
-func (ec *EmbodiedCognition) DelegateToSpecialist(ctx context.Context, task string, specialization string) (string, error) {
+// DelegateToSpecialist hands a task to a specialist agent. It returns the
+// acceptance receipt; the specialist's result arrives asynchronously as an
+// agent message and is processed when it does, never synthesised here.
+func (ec *EmbodiedCognition) DelegateToSpecialist(ctx context.Context, task string, specialization string) (*DelegationReceipt, error) {
 	if ec.Orchestrator == nil {
-		return "", fmt.Errorf("orchestrator not initialized")
+		return nil, fmt.Errorf("orchestrator not initialized")
 	}
 
-	result, err := ec.Orchestrator.DelegateTask(ctx, task, specialization)
-	if err != nil {
-		return "", err
-	}
-
-	// Process result through core identity
-	ec.Identity.Process(result)
-
-	return result, nil
+	return ec.Orchestrator.DelegateTask(ctx, task, specialization)
 }
 
 // GetAgentStatus returns the status of all sub-agents

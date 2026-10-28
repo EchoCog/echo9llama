@@ -503,7 +503,19 @@ func (mao *MultiAgentOrchestrator) GetAgentStatus() map[string]interface{} {
 }
 
 // DelegateTask delegates a task to the most appropriate specialist agent
-func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string, specialization string) (string, error) {
+// DelegationReceipt is the acceptance of an asynchronous delegation. The
+// specialist's real result arrives later as an AgentMessage of type
+// MessageTypeResponse carrying the same TaskID; nothing is fabricated at
+// acceptance time, and acceptance is not an error.
+type DelegationReceipt struct {
+	TaskID         string
+	AgentID        string
+	AgentName      string
+	Specialization string
+	AcceptedAt     time.Time
+}
+
+func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string, specialization string) (*DelegationReceipt, error) {
 	// Find or spawn appropriate agent
 	var agent *SubAgent
 
@@ -521,8 +533,16 @@ func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string
 		var err error
 		agent, err = mao.SpawnAgent(specialization)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
+	}
+
+	receipt := &DelegationReceipt{
+		TaskID:         fmt.Sprintf("task_%d", time.Now().UnixNano()),
+		AgentID:        agent.ID,
+		AgentName:      agent.Name,
+		Specialization: agent.Specialization,
+		AcceptedAt:     time.Now(),
 	}
 
 	// Send task message
@@ -535,6 +555,7 @@ func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string
 	})
 
 	// Delegation is asynchronous: the specialist's real result arrives as an
-	// AgentMessage of type MessageTypeResponse. No result is fabricated here.
-	return "", fmt.Errorf("task %q queued for %s (%s); result will arrive asynchronously", task, agent.Name, agent.Specialization)
+	// AgentMessage of type MessageTypeResponse. The receipt only records that
+	// the task was accepted; no result is fabricated here.
+	return receipt, nil
 }

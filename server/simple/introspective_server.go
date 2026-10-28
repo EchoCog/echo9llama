@@ -41,9 +41,11 @@ func init() {
 // registerProviders wires only real language-model providers; nothing here
 // fabricates text when no model is reachable.
 func registerProviders() {
+	// Registered unconditionally: a model server started later is picked up by
+	// the per-request availability check. The probe only informs the log.
 	localGGUF := providers.NewLocalGGUFProvider()
+	CoreIdentity.RegisterAIProvider("local_gguf", localGGUF)
 	if localGGUF.IsAvailable() {
-		CoreIdentity.RegisterAIProvider("local_gguf", localGGUF)
 		log.Printf("📦 Local model server: %d models", len(localGGUF.ListAvailableModels()))
 	}
 

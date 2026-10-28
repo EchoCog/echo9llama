@@ -273,6 +273,11 @@ func main() {
             });
             
             const data = await response.json();
+            if (!response.ok || !data.thought) {
+                // No model answered: show the operator-facing reason and keep the input.
+                addToConsole('No model available: ' + (data.error || response.statusText));
+                return;
+            }
             addToConsole('Thought: ' + data.thought);
             document.getElementById('input').value = '';
         }

@@ -454,7 +454,11 @@ func (eb *EchoBeats) generateThoughtContent() (string, bool) {
 	if src == nil {
 		return "", false
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	parent := eb.ctx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 30*time.Second)
 	defer cancel()
 	out, err := src.GenerateThought(ctx)
 	out = strings.TrimSpace(out)

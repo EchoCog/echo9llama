@@ -116,8 +116,14 @@ func (iac *IntegratedAutonomousConsciousness) executePracticeTask() {
 
 	iac.skills.mu.Unlock()
 
-	// Execute the practice task
-	iac.performPractice(task)
+	// Execute the practice task. When the model produced no attempt, the task
+	// goes back to the front of the queue and nothing is recorded as practice.
+	if !iac.performPractice(task) {
+		iac.skills.mu.Lock()
+		iac.skills.practiceQueue = append([]*PracticeTask{task}, iac.skills.practiceQueue...)
+		iac.skills.mu.Unlock()
+		return
+	}
 
 	// Mark as completed
 	task.Completed = true
@@ -236,13 +242,16 @@ func (iac *IntegratedAutonomousConsciousness) calculatePracticeDifficulty(skill 
 	return targetDifficulty
 }
 
-// performPractice performs a practice task and updates skill proficiency
-func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask) {
+// performPractice performs a practice task and updates skill proficiency.
+// It reports whether practice actually happened; false means the model
+// produced no attempt and nothing was recorded.
+func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask) bool {
 	iac.skills.mu.Lock()
 	skill := iac.skills.skills[task.SkillID]
 	if skill == nil {
 		iac.skills.mu.Unlock()
-		return
+		// Unknown skill: drop the task rather than retry it forever.
+		return true
 	}
 	iac.skills.mu.Unlock()
 
@@ -250,7 +259,7 @@ func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask
 	practiceThought := iac.generatePracticeThought(skill, task)
 	if practiceThought.Content == "" {
 		// No model produced a practice attempt; record nothing.
-		return
+		return false
 	}
 
 	// Assess performance
@@ -269,6 +278,7 @@ func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask
 		truncate(task.Description, 50),
 		performance,
 	)
+	return true
 }
 
 // generatePracticeThought generates a thought for skill practice
