@@ -53,13 +53,16 @@ func init() {
 
 	// Register the local model server (Ollama / llama-server) if it is up.
 	// Only real providers are registered: the character never speaks from a stub.
+	// The client is registered whether or not the server answers right now, so a
+	// model server started later is picked up by the per-request availability
+	// check without restarting. The startup probe only informs the log.
 	localGGUFProvider = providers.NewLocalGGUFProvider()
+	CoreIdentity.RegisterAIProvider("local_gguf", localGGUFProvider)
+	CoreIdentity.SetPrimaryAI("local_gguf")
 	if localGGUFProvider.IsAvailable() {
-		CoreIdentity.RegisterAIProvider("local_gguf", localGGUFProvider)
-		CoreIdentity.SetPrimaryAI("local_gguf")
-		log.Printf("✅ Local model server registered with %d models", len(localGGUFProvider.ListAvailableModels()))
+		log.Printf("✅ Local model server reachable with %d models", len(localGGUFProvider.ListAvailableModels()))
 	} else {
-		log.Println("ℹ️  No local model server reachable (set LOCAL_LLM_BASE_URL, default http://localhost:11434/v1)")
+		log.Println("ℹ️  No local model server reachable yet (set LOCAL_LLM_BASE_URL, default http://localhost:11434/v1); it will be used once it answers")
 	}
 
 	openai := providers.NewOpenAIProvider()

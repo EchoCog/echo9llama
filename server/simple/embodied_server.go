@@ -186,10 +186,16 @@ func main() {
 			return
 		}
 
-		// Process through Deep Tree Echo embodied cognition
-		result, err := CoreIdentity.Process(context.Background(), req.Prompt)
+		// Reservoir processing updates cognitive state; the text that is
+		// returned as the character's output comes only from a model.
+		ctx := context.Background()
+		CoreIdentity.Process(ctx, req.Prompt)
+		generated, err := CoreIdentity.GenerateWithAI(ctx, req.Prompt)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":    "no language model available: " + err.Error(),
+				"identity": CoreIdentity.Identity.GetStatus(),
+			})
 			return
 		}
 
@@ -198,7 +204,7 @@ func main() {
 
 		response := GenerateResponse{
 			Model:    "deep-tree-echo",
-			Response: fmt.Sprintf("🌊 %v", result),
+			Response: generated,
 			Done:     true,
 			Echo:     identityStatus,
 		}

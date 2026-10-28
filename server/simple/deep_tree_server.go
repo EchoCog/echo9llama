@@ -44,9 +44,11 @@ func init() {
 
 func registerProviders() {
 	// Only real providers are registered; nothing here fabricates text.
+	// Registered unconditionally: a model server started later is picked up by
+	// the per-request availability check. The probe only informs the log.
 	localGGUF := providers.NewLocalGGUFProvider()
+	DeepTree.RegisterAIProvider("local_gguf", localGGUF)
 	if localGGUF.IsAvailable() {
-		DeepTree.RegisterAIProvider("local_gguf", localGGUF)
 		log.Printf("📦 Local model server: %d models", len(localGGUF.ListAvailableModels()))
 	}
 

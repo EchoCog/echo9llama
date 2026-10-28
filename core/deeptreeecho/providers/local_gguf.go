@@ -112,7 +112,7 @@ func (p *LocalGGUFProvider) IsAvailable() bool {
 type chatRequest struct {
 	Model       string                     `json:"model"`
 	Messages    []deeptreeecho.ChatMessage `json:"messages"`
-	Temperature float64                    `json:"temperature,omitempty"`
+	Temperature float64                    `json:"temperature"`
 	MaxTokens   int                        `json:"max_tokens,omitempty"`
 	TopP        float64                    `json:"top_p,omitempty"`
 	Stop        []string                   `json:"stop,omitempty"`
