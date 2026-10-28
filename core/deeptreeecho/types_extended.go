@@ -7,16 +7,30 @@ const (
 	// Original types (from autonomous.go)
 	// ThoughtPerception, ThoughtReflection, ThoughtQuestion, ThoughtInsight,
 	// ThoughtPlan, ThoughtMemory, ThoughtImagination
-	
+
 	// Extended types for 12-step EchoBeats integration
-	ThoughtTypeReflective   = ThoughtReflection
-	ThoughtTypeExploratory  = ThoughtQuestion
-	ThoughtTypeAnalytical   = ThoughtInsight
-	ThoughtTypeCreative     = ThoughtImagination
-	ThoughtTypeIntentional  = ThoughtPlan
-	ThoughtTypePredictive   = ThoughtPlan // Maps to planning
-	ThoughtTypeEmotional    = ThoughtPerception // Maps to perception
+	ThoughtTypeReflective  = ThoughtReflection
+	ThoughtTypeExploratory = ThoughtQuestion
+	ThoughtTypeAnalytical  = ThoughtInsight
+	ThoughtTypeCreative    = ThoughtImagination
+	ThoughtTypeIntentional = ThoughtPlan
+	ThoughtTypePredictive  = ThoughtPlan       // Maps to planning
+	ThoughtTypeEmotional   = ThoughtPerception // Maps to perception
 )
+
+// CognitiveMode names the processing mode a thought was produced in. It is
+// shared by the default build and the integrated-consciousness layer.
+type CognitiveMode string
+
+const (
+	CognitiveModeExpressive CognitiveMode = "expressive"
+	CognitiveModeReflective CognitiveMode = "reflective"
+	CognitiveModeMeta       CognitiveMode = "meta"
+)
+
+func (cm CognitiveMode) String() string {
+	return string(cm)
+}
 
 // Extended Thought fields via embedding
 // Add EmotionalValence and Mode fields to existing Thought struct

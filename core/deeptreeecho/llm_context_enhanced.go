@@ -1,3 +1,11 @@
+//go:build integrated
+// +build integrated
+
+// This file belongs to the integrated-consciousness layer, which references
+// APIs (memory node/edge kinds, scheduler stepping, working-memory focus,
+// extended Thought fields) that do not exist yet. It is excluded from the
+// default build until that layer is completed; build with -tags integrated.
+
 package deeptreeecho
 
 import (
