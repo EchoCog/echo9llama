@@ -541,7 +541,6 @@ func (ec *EmbodiedCognition) RegisterModelProvider(name string, provider ModelPr
 
 	// Store in identity memory
 	ec.Identity.Remember(fmt.Sprintf("ai_provider_%s", name), provider.GetInfo())
-
 }
 
 // SetPrimaryAI sets the primary AI provider
