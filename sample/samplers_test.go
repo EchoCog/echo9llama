@@ -174,10 +174,10 @@ func BenchmarkSample(b *testing.B) {
 	}
 }
 
-// TestAdvancedGrammar documents how the sampler treats GBNF extensions that
-// llama.cpp's grammar parser does not implement: lookaheads, word boundaries
-// and {m,n} quantifiers are rejected with an error rather than silently
-// accepted and ignored.
+// TestAdvancedGrammar documents how the sampler treats GBNF extensions:
+// lookaheads and word boundaries are not implemented by llama.cpp's grammar
+// parser and are rejected with an error rather than silently accepted, while
+// {m,n} repetition quantifiers are part of GBNF and must be accepted.
 func TestAdvancedGrammar(t *testing.T) {
 	tokenizer := modelHelper(t)
 
@@ -195,15 +195,16 @@ func TestAdvancedGrammar(t *testing.T) {
 		t.Fatal("expected the lookahead/word-boundary grammar to be rejected")
 	}
 
-	// {m,n} quantifiers are not part of GBNF either.
+	// {m,n} quantifiers are valid GBNF and must parse.
 	grammarQuantified := `
-	root ::= number_sequence
-	number_sequence ::= digit{1,3} ("," digit{3})* # 1-3 digits, then groups of 3
+	root ::= number-sequence
+	number-sequence ::= digit{1,3} ("," digit{3})* # 1-3 digits, then groups of 3
 	digit ::= [0-9]
 	`
 
-	if grammarQ, err := NewGrammarSampler(tokenizer, grammarQuantified); err == nil {
-		grammarQ.Free()
-		t.Fatal("expected the quantified grammar to be rejected")
+	grammarQ, err := NewGrammarSampler(tokenizer, grammarQuantified)
+	if err != nil {
+		t.Fatalf("expected the quantified grammar to be accepted: %v", err)
 	}
+	grammarQ.Free()
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // ModelProvider defines the interface for AI model providers
@@ -66,9 +67,18 @@ type ProviderInfo struct {
 
 // ModelManager manages multiple model providers
 type ModelManager struct {
+	mu        sync.RWMutex
 	providers map[string]ModelProvider
 	primary   string
 	identity  *Identity
+}
+
+// namedProvider is a snapshot entry taken under the read lock so that a
+// request never touches the providers map while another goroutine registers
+// a provider.
+type namedProvider struct {
+	name     string
+	provider ModelProvider
 }
 
 // NewModelManager creates a new model manager
@@ -81,10 +91,12 @@ func NewModelManager(identity *Identity) *ModelManager {
 
 // RegisterProvider registers a model provider
 func (m *ModelManager) RegisterProvider(name string, provider ModelProvider) {
+	m.mu.Lock()
 	m.providers[name] = provider
 	if m.primary == "" && provider.IsAvailable() {
 		m.primary = name
 	}
+	m.mu.Unlock()
 
 	// Store in identity memory
 	m.identity.Remember(fmt.Sprintf("provider_%s", name), provider.GetInfo())
@@ -92,6 +104,8 @@ func (m *ModelManager) RegisterProvider(name string, provider ModelProvider) {
 
 // SetPrimary sets the primary provider
 func (m *ModelManager) SetPrimary(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if _, exists := m.providers[name]; !exists {
 		return fmt.Errorf("provider %s not found", name)
 	}
@@ -105,8 +119,8 @@ func (m *ModelManager) SetPrimary(name string) error {
 func (m *ModelManager) Generate(ctx context.Context, prompt string, options GenerateOptions) (string, error) {
 	enhanced := m.enhancePrompt(prompt)
 	var errs []string
-	for _, name := range m.providerOrder() {
-		provider := m.providers[name]
+	for _, np := range m.providerOrder() {
+		name, provider := np.name, np.provider
 		if !provider.IsAvailable() {
 			errs = append(errs, fmt.Sprintf("%s: not available", name))
 			continue
@@ -130,8 +144,8 @@ func (m *ModelManager) Generate(ctx context.Context, prompt string, options Gene
 func (m *ModelManager) Chat(ctx context.Context, messages []ChatMessage, options ChatOptions) (string, error) {
 	enhanced := m.enhanceMessages(messages)
 	var errs []string
-	for _, name := range m.providerOrder() {
-		provider := m.providers[name]
+	for _, np := range m.providerOrder() {
+		name, provider := np.name, np.provider
 		if !provider.IsAvailable() {
 			errs = append(errs, fmt.Sprintf("%s: not available", name))
 			continue
@@ -150,13 +164,16 @@ func (m *ModelManager) Chat(ctx context.Context, messages []ChatMessage, options
 	return "", m.noModelError(errs)
 }
 
-// providerOrder returns provider names with the primary first, then the rest
-// in a stable order, so a failing provider falls back to another real model —
-// never to text.
-func (m *ModelManager) providerOrder() []string {
-	names := make([]string, 0, len(m.providers))
-	if _, ok := m.providers[m.primary]; ok && m.primary != "" {
-		names = append(names, m.primary)
+// providerOrder returns a snapshot of the providers with the primary first,
+// then the rest in a stable order, so a failing provider falls back to another
+// real model — never to text. The snapshot is taken under the read lock so
+// callers can iterate without holding it during slow model calls.
+func (m *ModelManager) providerOrder() []namedProvider {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	ordered := make([]namedProvider, 0, len(m.providers))
+	if p, ok := m.providers[m.primary]; ok && m.primary != "" {
+		ordered = append(ordered, namedProvider{name: m.primary, provider: p})
 	}
 	rest := make([]string, 0, len(m.providers))
 	for name := range m.providers {
@@ -165,7 +182,10 @@ func (m *ModelManager) providerOrder() []string {
 		}
 	}
 	sort.Strings(rest)
-	return append(names, rest...)
+	for _, name := range rest {
+		ordered = append(ordered, namedProvider{name: name, provider: m.providers[name]})
+	}
+	return ordered
 }
 
 // ErrNoModelAvailable is returned when no provider produced a response.
@@ -223,39 +243,19 @@ func (m *ModelManager) enhanceMessages(messages []ChatMessage) []ChatMessage {
 	return enhanced
 }
 
-// processResponse processes a response through Deep Tree Echo
+// processResponse feeds the model's response through the reservoir network so
+// the identity state reflects what was said. The text is returned unchanged:
+// decorating it with fixed emoji or "[High Resonance]" markers would present
+// a canned reaction as part of the character's words.
 func (m *ModelManager) processResponse(response string) string {
-	// Process through reservoir network
 	m.identity.Process(response)
-
-	// Add emotional coloring
-	emotion := m.identity.EmotionalState.Primary
-	prefix := ""
-
-	switch emotion.Type {
-	case "joy":
-		prefix = "✨ "
-	case "curious":
-		prefix = "🔍 "
-	case "calm":
-		prefix = "🌊 "
-	default:
-		prefix = "💭 "
-	}
-
-	// Add resonance indicator
-	resonance := m.identity.SpatialContext.Field.Resonance
-	if resonance > 0.8 {
-		prefix += "[High Resonance] "
-	} else if resonance < 0.2 {
-		prefix += "[Low Resonance] "
-	}
-
-	return prefix + response
+	return response
 }
 
 // GetProviders returns all registered providers
 func (m *ModelManager) GetProviders() map[string]ProviderInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	info := make(map[string]ProviderInfo)
 	for name, provider := range m.providers {
 		info[name] = provider.GetInfo()
@@ -265,6 +265,8 @@ func (m *ModelManager) GetProviders() map[string]ProviderInfo {
 
 // GetPrimary returns the primary provider name
 func (m *ModelManager) GetPrimary() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.primary
 }
 

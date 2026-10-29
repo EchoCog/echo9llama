@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -43,6 +44,9 @@ type AgentMessage struct {
 	Priority    int
 	Timestamp   time.Time
 	RequiresAck bool
+	// TaskID correlates a task message with the result message that answers
+	// it (see DelegationReceipt.TaskID).
+	TaskID string
 }
 
 // MessageType defines types of inter-agent messages
@@ -353,8 +357,24 @@ func (mao *MultiAgentOrchestrator) executeAgentTask(agent *SubAgent, msg AgentMe
 			agent.LocalReservoir.Nodes[j].Activation = agent.LocalReservoir.State[j]
 		}
 
-		// Generate result
-		result := fmt.Sprintf("[%s]: Processed task with specialization", agent.Specialization)
+		// The result is the agent's real state after processing: its
+		// reservoir activation and bookkeeping, not a sentence pretending to
+		// be an answer.
+		activation := 0.0
+		for _, v := range agent.LocalReservoir.State {
+			activation += v * v
+		}
+		if n := len(agent.LocalReservoir.State); n > 0 {
+			activation = math.Sqrt(activation / float64(n))
+		}
+		result := map[string]interface{}{
+			"task_id":        msg.TaskID,
+			"agent_id":       agent.ID,
+			"specialization": agent.Specialization,
+			"task":           task,
+			"activation":     activation,
+			"task_count":     agent.TaskCount,
+		}
 
 		// Send result back
 		mao.SendMessage(AgentMessage{
@@ -362,6 +382,7 @@ func (mao *MultiAgentOrchestrator) executeAgentTask(agent *SubAgent, msg AgentMe
 			To:      msg.From,
 			Type:    MessageTypeResult,
 			Content: result,
+			TaskID:  msg.TaskID,
 		})
 
 		// Update success rate (simplified)
@@ -552,10 +573,12 @@ func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string
 		Type:     MessageTypeTask,
 		Content:  task,
 		Priority: 1,
+		TaskID:   receipt.TaskID,
 	})
 
 	// Delegation is asynchronous: the specialist's real result arrives as an
-	// AgentMessage of type MessageTypeResponse. The receipt only records that
-	// the task was accepted; no result is fabricated here.
+	// AgentMessage of type MessageTypeResult carrying the same TaskID. The
+	// receipt only records that the task was accepted; no result is
+	// fabricated here.
 	return receipt, nil
 }

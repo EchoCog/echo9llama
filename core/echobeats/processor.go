@@ -3,10 +3,20 @@ package echobeats
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 )
+
+// maxPendingIdeas bounds the idea queue so an idle processor that keeps
+// generating ideas does not grow it without limit; the oldest are dropped.
+const maxPendingIdeas = 12
+
+// listPrefix matches a leading bullet or enumerator ("- ", "* ", "• ",
+// "1. ", "2) ") so that lines of a model-written list can be stripped without
+// eating digits that belong to the action text itself.
+var listPrefix = regexp.MustCompile(`^\s*(?:[-*\x{2022}]|\d+[.)])\s+`)
 
 // IdeaSource is a language model that can propose an idea, an action, or an
 // expected outcome for the processor. Every piece of cognitive content the
@@ -123,6 +133,9 @@ func (dpp *DefaultPhaseProcessor) ProcessT2IdeaFormation(mode Mode) (*CognitiveS
 			}
 		} else {
 			dpp.ideaQueue = append(dpp.ideaQueue, idea)
+			if len(dpp.ideaQueue) > maxPendingIdeas {
+				dpp.ideaQueue = dpp.ideaQueue[len(dpp.ideaQueue)-maxPendingIdeas:]
+			}
 
 			stream.Content = map[string]interface{}{
 				"idea":       idea,
@@ -478,7 +491,7 @@ func (dpp *DefaultPhaseProcessor) planActionSequence() []string {
 	}
 	sequence := make([]string, 0)
 	for _, line := range strings.Split(answer, "\n") {
-		line = strings.TrimSpace(strings.TrimLeft(line, "-*0123456789. "))
+		line = strings.TrimSpace(listPrefix.ReplaceAllString(line, ""))
 		if line != "" {
 			sequence = append(sequence, line)
 		}

@@ -214,10 +214,9 @@ func main() {
 			return
 		}
 
-		// Reservoir processing updates cognitive state; the text that is
-		// returned as the character's output comes only from a model.
+		// GenerateWithAI runs the reservoir processing itself; the text that
+		// is returned as the character's output comes only from a model.
 		ctx := context.Background()
-		CoreIdentity.Process(ctx, req.Prompt)
 		generated, err := CoreIdentity.GenerateWithAI(ctx, req.Prompt)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
@@ -247,17 +246,11 @@ func main() {
 			return
 		}
 
-		// Extract message content
 		messages := req["messages"].([]interface{})
-		lastMessage := ""
-		if len(messages) > 0 {
-			msg := messages[len(messages)-1].(map[string]interface{})
-			lastMessage = msg["content"].(string)
-		}
 
-		// Reservoir processing updates state; the reply itself comes from a model.
+		// ChatWithAI runs the reservoir processing itself; the reply comes
+		// from a model.
 		ctx := context.Background()
-		CoreIdentity.Process(ctx, lastMessage)
 		chatMessages := make([]deeptreeecho.ChatMessage, 0, len(messages))
 		for _, raw := range messages {
 			m, ok := raw.(map[string]interface{})

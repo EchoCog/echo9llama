@@ -775,9 +775,10 @@ func (ec *EmbodiedCognition) periodicReflection() {
 // is written — fixed sentences would otherwise feed back into the character's
 // state as if it had reflected.
 func (ec *EmbodiedCognition) performEchoReflection() {
+	// Only the metrics snapshot needs the lock. The model call below can take
+	// seconds and itself runs Process (which locks), so the lock must be
+	// released before it.
 	ec.mu.Lock()
-	defer ec.mu.Unlock()
-
 	metrics := map[string]float64{
 		"identity_coherence":  ec.Identity.Coherence,
 		"memory_resonance":    ec.Identity.Memory.Coherence,
@@ -787,6 +788,7 @@ func (ec *EmbodiedCognition) performEchoReflection() {
 		"active_patterns":     float64(len(ec.Patterns)),
 		"adaptation_level":    ec.AdaptationLevel,
 	}
+	ec.mu.Unlock()
 
 	answers, err := ec.reflectWithModel(metrics)
 	if err != nil {

@@ -372,24 +372,21 @@ func main() {
 
 		prompt := req["prompt"]
 
-		// Reservoir processing updates cognitive state (data), but what the
+		// GenerateWithAI runs the reservoir processing itself; what the
 		// character *thinks* in words comes only from a model.
 		ctx := context.Background()
-		result, _ := DeepTree.Process(ctx, prompt)
 		thought, err := DeepTree.GenerateWithAI(ctx, prompt)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"error":      "no language model available: " + err.Error(),
-				"processing": result,
-				"coherence":  DeepTree.Identity.Coherence,
+				"error":     "no language model available: " + err.Error(),
+				"coherence": DeepTree.Identity.Coherence,
 			})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"thought":    thought,
-			"processing": result,
-			"coherence":  DeepTree.Identity.Coherence,
+			"thought":   thought,
+			"coherence": DeepTree.Identity.Coherence,
 		})
 	})
 
@@ -512,15 +509,17 @@ func main() {
 		prompt := req["prompt"]
 		model := req["model"]
 
-		// Process through Deep Tree Echo
+		// The response is the model's; GenerateWithAI runs the reservoir
+		// processing itself. Without a model there is no response to return
+		// and nothing to learn from.
 		ctx := context.Background()
-		result, _ := DeepTree.Process(ctx, prompt)
-
-		// Try AI generation if available
 		response, err := DeepTree.GenerateWithAI(ctx, prompt)
 		if err != nil {
-			// Use Deep Tree Echo's own generation
-			response = fmt.Sprintf("%v", result)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"model": model,
+			})
+			return
 		}
 
 		// Learn from this interaction
@@ -547,14 +546,6 @@ func main() {
 		}
 
 		messages := req["messages"].([]interface{})
-		lastMessage := ""
-
-		for _, msg := range messages {
-			m := msg.(map[string]interface{})
-			if m["role"] == "user" {
-				lastMessage = m["content"].(string)
-			}
-		}
 
 		// Build the chat history for the model (all roles, in order).
 		chatMessages := make([]deeptreeecho.ChatMessage, 0, len(messages))
@@ -571,7 +562,6 @@ func main() {
 		}
 
 		ctx := context.Background()
-		DeepTree.Process(ctx, lastMessage)
 		// The reply is the model's. A replayed past response (Predict) or the
 		// reservoir summary (Think) is never presented as what the character said.
 		response, err := DeepTree.ChatWithAI(ctx, chatMessages)
