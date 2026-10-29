@@ -20,9 +20,9 @@ type Stabilizer int
 
 const (
 	Stabilizer_None             Stabilizer = iota
-	Stabilizer_OpponentProcess  // g2 holds while g3 shifts
-	Stabilizer_NarrativeProcess // g3 holds while g2 shifts
-	Stabilizer_Both             // Both shift (synchronized reset)
+	Stabilizer_OpponentProcess             // g2 holds while g3 shifts
+	Stabilizer_NarrativeProcess            // g3 holds while g2 shifts
+	Stabilizer_Both                        // Both shift (synchronized reset)
 )
 
 func (s Stabilizer) String() string {
@@ -73,9 +73,9 @@ type MeaningState struct {
 
 // PerformanceState represents actualized performance
 type PerformanceState struct {
-	Performance    string
-	Actualization  float64
-	GoalAlignment  float64
+	Performance   string
+	Actualization float64
+	GoalAlignment float64
 }
 
 // PhaseState represents current state of an embodied phase
@@ -92,18 +92,16 @@ type OpponentProcess struct {
 	id             int
 	currentTerm    Term
 	currentMode    Mode
-	stepInCycle    int
 	phases         []*CognitivePhase
 	globalIdentity *Identity
 	outputStream   chan *GlobalStream
-	running        bool
 	mu             sync.RWMutex
 }
 
 // NewOpponentProcess creates a new opponent process channel
 func NewOpponentProcess(phases []*CognitivePhase) *OpponentProcess {
 	return &OpponentProcess{
-		id:    2, // g2
+		id:     2, // g2
 		phases: phases,
 		globalIdentity: &Identity{
 			Name:      "Echo",
@@ -219,11 +217,11 @@ func (op *OpponentProcess) ProcessT8R() (*GlobalStream, error) {
 		Term:        T8_BalancedResponse,
 		Mode:        Reflective,
 		Content: map[string]interface{}{
-			"integrated_states":  states,
-			"type":               "bottom_up_integration",
-			"reconciled_count":   len(states),
-			"total_steps":        totalSteps,
-			"updated_coherence":  coherence,
+			"integrated_states": states,
+			"type":              "bottom_up_integration",
+			"reconciled_count":  len(states),
+			"total_steps":       totalSteps,
+			"updated_coherence": coherence,
 		},
 		Timestamp: time.Now(),
 		Strength:  0.9,
@@ -254,12 +252,10 @@ type NarrativeProcess struct {
 	id           int
 	currentTerm  Term
 	currentMode  Mode
-	stepInCycle  int
 	goalStates   []GoalState
 	meaningState *MeaningState
 	performance  *PerformanceState
 	outputStream chan *GlobalStream
-	running      bool
 	mu           sync.RWMutex
 }
 
@@ -467,7 +463,6 @@ type GlobalIntegrator struct {
 	embodiedStreams chan *CognitiveStream
 	globalStreams   chan *GlobalStream
 	consciousness   ConsciousnessIntegrator
-	mu              sync.RWMutex
 }
 
 // NewGlobalIntegrator creates a new global integrator

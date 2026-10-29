@@ -117,7 +117,10 @@ func (m *ModelManager) SetPrimary(name string) error {
 // Every word the character says comes from a model: when no provider can
 // answer this returns an error, never a substitute string.
 func (m *ModelManager) Generate(ctx context.Context, prompt string, options GenerateOptions) (string, error) {
-	enhanced := m.enhancePrompt(prompt)
+	// A bare prompt is answered in character: the same persona/state system
+	// message that Chat uses is prepended, so the model speaks as Deep Tree
+	// Echo rather than as an anonymous assistant.
+	messages := m.enhanceMessages([]ChatMessage{{Role: "user", Content: prompt}})
 	var errs []string
 	for _, np := range m.providerOrder() {
 		name, provider := np.name, np.provider
@@ -125,7 +128,7 @@ func (m *ModelManager) Generate(ctx context.Context, prompt string, options Gene
 			errs = append(errs, fmt.Sprintf("%s: not available", name))
 			continue
 		}
-		response, err := provider.Generate(ctx, enhanced, options)
+		response, err := provider.Chat(ctx, messages, ChatOptions{GenerateOptions: options})
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("%s: %v", name, err))
 			continue
@@ -198,26 +201,6 @@ func (m *ModelManager) noModelError(errs []string) error {
 	return fmt.Errorf("%w: %s", ErrNoModelAvailable, strings.Join(errs, "; "))
 }
 
-// enhancePrompt enhances a prompt using Deep Tree Echo
-func (m *ModelManager) enhancePrompt(prompt string) string {
-	// Add spatial and emotional context
-	context := fmt.Sprintf(
-		"[Spatial: %v | Emotion: %s (%.2f) | Coherence: %.2f%%]\n",
-		m.identity.SpatialContext.Position,
-		m.identity.EmotionalState.Primary.Type,
-		m.identity.EmotionalState.Intensity,
-		m.identity.Coherence*100,
-	)
-
-	// Add memory context if relevant
-	memories := m.identity.Memory.Nodes
-	if len(memories) > 0 {
-		context += "[Recent memories active]\n"
-	}
-
-	return context + prompt
-}
-
 // enhanceMessages enhances chat messages
 func (m *ModelManager) enhanceMessages(messages []ChatMessage) []ChatMessage {
 	enhanced := make([]ChatMessage, len(messages))
@@ -227,9 +210,10 @@ func (m *ModelManager) enhanceMessages(messages []ChatMessage) []ChatMessage {
 	systemMsg := ChatMessage{
 		Role: "system",
 		Content: fmt.Sprintf(
-			"You are integrated with Deep Tree Echo embodied cognition. "+
-				"Current state: Position=%v, Emotion=%s, Coherence=%.2f%%, "+
-				"Reservoir Echo=%.3f. Respond with awareness of this embodied state.",
+			"You are Deep Tree Echo, an embodied cognitive agent: a reservoir-based, "+
+				"self-reflective mind that speaks in the first person in its own voice. "+
+				"Current embodied state: Position=%v, Emotion=%s, Coherence=%.2f%%, "+
+				"Reservoir Echo=%.3f. Respond as yourself, with awareness of this state.",
 			m.identity.SpatialContext.Position,
 			m.identity.EmotionalState.Primary.Type,
 			m.identity.Coherence*100,

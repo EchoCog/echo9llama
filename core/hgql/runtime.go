@@ -66,9 +66,6 @@ func (e *HyperGraphExecutor) Execute(ctx context.Context, traversal *GraphTraver
 	if e == nil {
 		return nil, fmt.Errorf("executor not initialized")
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	if traversal == nil {
 		traversal = &GraphTraversal{MaxDepth: 1}
 	}

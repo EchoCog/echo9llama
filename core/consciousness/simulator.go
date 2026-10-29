@@ -1,4 +1,3 @@
-
 package consciousness
 
 import (
@@ -8,7 +7,7 @@ import (
 
 // ConsciousnessSimulator implements layered consciousness simulation
 type ConsciousnessSimulator struct {
-	mu                 sync.RWMutex
+	mu                sync.RWMutex
 	layers            map[string]ConsciousnessLayer
 	awarenessMonitors map[string]AwarenessMonitor
 	introspectionLoop IntrospectionLoop
@@ -19,11 +18,11 @@ type ConsciousnessSimulator struct {
 
 // ConsciousnessLayer represents a layer of awareness
 type ConsciousnessLayer struct {
-	ID               string
-	Name             string
-	Level            int // 0=basic, 1=reflective, 2=meta-cognitive, 3=transcendent
-	AwarenessScope   []string
-	ProcessingType   string // "reactive", "deliberative", "metacognitive"
+	ID              string
+	Name            string
+	Level           int // 0=basic, 1=reflective, 2=meta-cognitive, 3=transcendent
+	AwarenessScope  []string
+	ProcessingType  string // "reactive", "deliberative", "metacognitive"
 	State           LayerState
 	Connections     []string // Connected layer IDs
 	ActivationLevel float64
@@ -32,20 +31,20 @@ type ConsciousnessLayer struct {
 
 // LayerState captures the current state of a consciousness layer
 type LayerState struct {
-	ActiveConcepts    []string
-	AttentionFocus    []string
-	EmotionalTone     map[string]float64
-	ConfidenceLevel   float64
-	ProcessingLoad    float64
-	InternalDialogue  []DialogueElement
+	ActiveConcepts   []string
+	AttentionFocus   []string
+	EmotionalTone    map[string]float64
+	ConfidenceLevel  float64
+	ProcessingLoad   float64
+	InternalDialogue []DialogueElement
 }
 
 // DialogueElement represents internal thought processes
 type DialogueElement struct {
-	Timestamp time.Time
-	Type      string // "question", "assertion", "doubt", "insight"
-	Content   string
-	Source    string // Layer ID
+	Timestamp  time.Time
+	Type       string // "question", "assertion", "doubt", "insight"
+	Content    string
+	Source     string // Layer ID
 	Confidence float64
 }
 
@@ -58,21 +57,21 @@ type AwarenessMonitor interface {
 
 // AwarenessReport describes awareness state
 type AwarenessReport struct {
-	LayerID         string
-	AwarenessLevel  float64
-	FocusAreas      []string
-	Insights        []string
-	Anomalies       []string
-	Timestamp       time.Time
+	LayerID        string
+	AwarenessLevel float64
+	FocusAreas     []string
+	Insights       []string
+	Anomalies      []string
+	Timestamp      time.Time
 }
 
 // EmergentPattern identifies emergent awareness patterns
 type EmergentPattern struct {
-	Type        string // "insight", "confusion", "clarity", "breakthrough"
-	Description string
+	Type           string // "insight", "confusion", "clarity", "breakthrough"
+	Description    string
 	InvolvedLayers []string
-	Confidence  float64
-	Timestamp   time.Time
+	Confidence     float64
+	Timestamp      time.Time
 }
 
 // IntrospectionLoop manages self-reflective processes
@@ -84,30 +83,30 @@ type IntrospectionLoop interface {
 
 // IntrospectionResult captures introspective analysis
 type IntrospectionResult struct {
-	SelfAssessment    map[string]float64
-	IdentifiedIssues  []string
+	SelfAssessment       map[string]float64
+	IdentifiedIssues     []string
 	SuggestedAdjustments []LayerAdjustment
-	MetaInsights      []MetaThought
-	OverallCoherence  float64
+	MetaInsights         []MetaThought
+	OverallCoherence     float64
 }
 
 // MetaThought represents higher-order thinking
 type MetaThought struct {
-	Content     string
-	Type        string // "self-reflection", "meta-analysis", "consciousness-assessment"
-	Confidence  float64
-	Origin      string
+	Content      string
+	Type         string // "self-reflection", "meta-analysis", "consciousness-assessment"
+	Confidence   float64
+	Origin       string
 	Implications []string
-	Timestamp   time.Time
+	Timestamp    time.Time
 }
 
 // LayerAdjustment suggests consciousness layer modifications
 type LayerAdjustment struct {
-	LayerID     string
-	Adjustment  string // "increase_activation", "refocus_attention", "enhance_connection"
-	Parameters  map[string]interface{}
-	Rationale   string
-	Priority    float64
+	LayerID    string
+	Adjustment string // "increase_activation", "refocus_attention", "enhance_connection"
+	Parameters map[string]interface{}
+	Rationale  string
+	Priority   float64
 }
 
 // QualityAssessment evaluates consciousness quality
@@ -117,18 +116,18 @@ type QualityAssessment struct {
 	IntegrationLevel float64
 	AwarenessDepth   float64
 	SelfReflection   float64
-	Issues          []string
-	Strengths       []string
+	Issues           []string
+	Strengths        []string
 }
 
 // GlobalAwareness represents unified consciousness state
 type GlobalAwareness struct {
-	UnifiedFocus      []string
+	UnifiedFocus        []string
 	GlobalEmotionalTone map[string]float64
-	MetaCognitions    []MetaThought
-	ConsciousnessLevel float64
-	CoherenceMetrics  map[string]float64
-	LastUpdate        time.Time
+	MetaCognitions      []MetaThought
+	ConsciousnessLevel  float64
+	CoherenceMetrics    map[string]float64
+	LastUpdate          time.Time
 }
 
 // NewConsciousnessSimulator creates new consciousness simulation
@@ -139,7 +138,7 @@ func NewConsciousnessSimulator() *ConsciousnessSimulator {
 		coherenceLevel:    0.5,
 		lastUpdate:        time.Now(),
 	}
-	
+
 	// Initialize basic consciousness layers
 	cs.initializeBasicLayers()
 	return cs
@@ -156,7 +155,7 @@ func (cs *ConsciousnessSimulator) initializeBasicLayers() {
 		ProcessingType:  "reactive",
 		ActivationLevel: 0.8,
 	}
-	
+
 	// Reflective awareness layer
 	reflectiveLayer := ConsciousnessLayer{
 		ID:              "reflective_awareness",
@@ -167,7 +166,7 @@ func (cs *ConsciousnessSimulator) initializeBasicLayers() {
 		Connections:     []string{"basic_awareness"},
 		ActivationLevel: 0.6,
 	}
-	
+
 	// Meta-cognitive layer
 	metaLayer := ConsciousnessLayer{
 		ID:              "metacognitive_awareness",
@@ -178,7 +177,7 @@ func (cs *ConsciousnessSimulator) initializeBasicLayers() {
 		Connections:     []string{"reflective_awareness"},
 		ActivationLevel: 0.4,
 	}
-	
+
 	cs.layers["basic_awareness"] = basicLayer
 	cs.layers["reflective_awareness"] = reflectiveLayer
 	cs.layers["metacognitive_awareness"] = metaLayer
@@ -188,22 +187,22 @@ func (cs *ConsciousnessSimulator) initializeBasicLayers() {
 func (cs *ConsciousnessSimulator) SimulateConsciousness() error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	
+
 	// Update each consciousness layer
 	for id, layer := range cs.layers {
 		updatedLayer := cs.updateLayer(layer)
 		cs.layers[id] = updatedLayer
 	}
-	
+
 	// Generate global awareness
 	cs.globalAwareness = cs.synthesizeGlobalAwareness()
-	
+
 	// Run introspection if available
 	if cs.introspectionLoop != nil {
 		introspectionResult := cs.introspectionLoop.Introspect(cs)
 		cs.applyIntrospectionResults(introspectionResult)
 	}
-	
+
 	cs.lastUpdate = time.Now()
 	return nil
 }
@@ -217,15 +216,15 @@ func (cs *ConsciousnessSimulator) updateLayer(layer ConsciousnessLayer) Consciou
 			newActivation += connectedLayer.ActivationLevel * 0.1
 		}
 	}
-	
+
 	// Normalize activation
 	if newActivation > 1.0 {
 		newActivation = 1.0
 	}
-	
+
 	layer.ActivationLevel = newActivation
 	layer.LastActivation = time.Now()
-	
+
 	return layer
 }
 
@@ -233,26 +232,24 @@ func (cs *ConsciousnessSimulator) updateLayer(layer ConsciousnessLayer) Consciou
 func (cs *ConsciousnessSimulator) synthesizeGlobalAwareness() GlobalAwareness {
 	globalFocus := make([]string, 0)
 	globalEmotionalTone := make(map[string]float64)
-	
+
 	// Aggregate focus from all layers
 	for _, layer := range cs.layers {
-		for _, focus := range layer.State.AttentionFocus {
-			globalFocus = append(globalFocus, focus)
-		}
-		
+		globalFocus = append(globalFocus, layer.State.AttentionFocus...)
+
 		// Aggregate emotional tones
 		for emotion, intensity := range layer.State.EmotionalTone {
 			globalEmotionalTone[emotion] += intensity * layer.ActivationLevel
 		}
 	}
-	
+
 	// Calculate overall consciousness level
 	totalActivation := 0.0
 	for _, layer := range cs.layers {
 		totalActivation += layer.ActivationLevel
 	}
 	consciousnessLevel := totalActivation / float64(len(cs.layers))
-	
+
 	return GlobalAwareness{
 		UnifiedFocus:        globalFocus,
 		GlobalEmotionalTone: globalEmotionalTone,
@@ -269,7 +266,7 @@ func (cs *ConsciousnessSimulator) applyIntrospectionResults(result Introspection
 			cs.layers[adjustment.LayerID] = layer
 		}
 	}
-	
+
 	cs.coherenceLevel = result.OverallCoherence
 }
 
@@ -285,7 +282,7 @@ func (cs *ConsciousnessSimulator) applyLayerAdjustment(layer ConsciousnessLayer,
 			layer.State.AttentionFocus = newFocus
 		}
 	}
-	
+
 	return layer
 }
 

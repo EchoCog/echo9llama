@@ -11,43 +11,43 @@ import (
 // Implements tensor-based hypergraph consolidation for deep memory integration
 type ConsolidationAlgorithms struct {
 	mu sync.RWMutex
-	
+
 	// Hypergraph-based consolidation
 	hypergraphConsolidator *HypergraphConsolidator
-	
+
 	// Tensor operations for memory encoding
 	tensorEncoder *MemoryTensorEncoder
-	
+
 	// Pattern-based consolidation
 	patternConsolidator *PatternBasedConsolidator
-	
+
 	// Semantic clustering
 	semanticClusterer *SemanticClusterer
-	
+
 	// Importance weighting
 	importanceWeighter *ImportanceWeighter
 }
 
 // HypergraphConsolidator consolidates memories using hypergraph structures
 type HypergraphConsolidator struct {
-	mu              sync.RWMutex
-	nodes           map[string]*HypergraphMemoryNode
-	edges           map[string]*HypergraphMemoryEdge
-	clusters        []*MemoryCluster
+	mu                    sync.RWMutex
+	nodes                 map[string]*HypergraphMemoryNode
+	edges                 map[string]*HypergraphMemoryEdge
+	clusters              []*MemoryCluster
 	consolidationStrength float64
 }
 
 // HypergraphMemoryNode represents a memory node in the hypergraph
 type HypergraphMemoryNode struct {
-	ID              string
-	Content         interface{}
-	Type            MemoryType
-	Embedding       []float64
-	Importance      float64
-	Emotional       float64
-	Timestamp       time.Time
-	AccessCount     int64
-	LastAccessed    time.Time
+	ID                 string
+	Content            interface{}
+	Type               MemoryType
+	Embedding          []float64
+	Importance         float64
+	Emotional          float64
+	Timestamp          time.Time
+	AccessCount        int64
+	LastAccessed       time.Time
 	ConsolidationLevel float64
 }
 
@@ -91,12 +91,12 @@ const (
 
 // MemoryCluster represents a cluster of related memories
 type MemoryCluster struct {
-	ID          string
-	Centroid    []float64
-	Members     []string
-	Coherence   float64
-	Importance  float64
-	Theme       string
+	ID         string
+	Centroid   []float64
+	Members    []string
+	Coherence  float64
+	Importance float64
+	Theme      string
 }
 
 // MemoryTensorEncoder encodes memories as tensors for consolidation
@@ -109,51 +109,50 @@ type MemoryTensorEncoder struct {
 
 // TensorEncoder performs tensor encoding operations
 type TensorEncoder struct {
-	inputDim    int
-	outputDim   int
-	weights     [][]float64
-	biases      []float64
+	inputDim  int
+	outputDim int
+	weights   [][]float64
+	biases    []float64
 }
 
 // PatternBasedConsolidator consolidates based on pattern recognition
 type PatternBasedConsolidator struct {
-	mu              sync.RWMutex
-	patterns        []*MemoryPattern
-	patternMatcher  *PatternMatcher
+	mu                     sync.RWMutex
+	patterns               []*MemoryPattern
+	patternMatcher         *PatternMatcher
 	consolidationThreshold float64
 }
 
 // MemoryPattern represents a recognized memory pattern
 type MemoryPattern struct {
-	ID          string
-	Type        string
-	Template    []interface{}
-	Instances   []string
-	Strength    float64
-	Frequency   int
+	ID        string
+	Type      string
+	Template  []interface{}
+	Instances []string
+	Strength  float64
+	Frequency int
 }
 
 // PatternMatcher matches memories to patterns
 type PatternMatcher struct {
-	patterns    []*MemoryPattern
-	threshold   float64
+	threshold float64
 }
 
 // SemanticClusterer clusters memories by semantic similarity
 type SemanticClusterer struct {
-	mu              sync.RWMutex
-	clusters        []*MemoryCluster
+	mu                  sync.RWMutex
+	clusters            []*MemoryCluster
 	similarityThreshold float64
-	maxClusters     int
+	maxClusters         int
 }
 
 // ImportanceWeighter weights memory importance for consolidation
 type ImportanceWeighter struct {
-	mu              sync.RWMutex
-	weights         map[string]float64
-	decayRate       float64
-	recencyBias     float64
-	emotionalBias   float64
+	mu            sync.RWMutex
+	weights       map[string]float64
+	decayRate     float64
+	recencyBias   float64
+	emotionalBias float64
 }
 
 // NewConsolidationAlgorithms creates new consolidation algorithms
@@ -171,15 +170,15 @@ func NewConsolidationAlgorithms() *ConsolidationAlgorithms {
 func (ca *ConsolidationAlgorithms) ConsolidateMemories(traces []*MemoryTrace) (*ConsolidationResult, error) {
 	ca.mu.Lock()
 	defer ca.mu.Unlock()
-	
+
 	result := &ConsolidationResult{
-		StartTime:   time.Now(),
-		InputCount:  len(traces),
+		StartTime:    time.Now(),
+		InputCount:   len(traces),
 		Consolidated: make([]*ConsolidatedMemory, 0),
-		Patterns:    make([]*MemoryPattern, 0),
-		Clusters:    make([]*MemoryCluster, 0),
+		Patterns:     make([]*MemoryPattern, 0),
+		Clusters:     make([]*MemoryCluster, 0),
 	}
-	
+
 	// Step 1: Encode memories as tensors
 	encodedMemories := make([]*EncodedMemory, 0)
 	for _, trace := range traces {
@@ -189,54 +188,54 @@ func (ca *ConsolidationAlgorithms) ConsolidateMemories(traces []*MemoryTrace) (*
 		}
 		encodedMemories = append(encodedMemories, encoded)
 	}
-	
+
 	// Step 2: Build hypergraph structure
 	for _, encoded := range encodedMemories {
 		node := &HypergraphMemoryNode{
-			ID:          encoded.ID,
-			Content:     encoded.Content,
-			Type:        ca.inferMemoryType(encoded),
-			Embedding:   encoded.Embedding,
-			Importance:  encoded.Importance,
-			Emotional:   encoded.Emotional,
-			Timestamp:   encoded.Timestamp,
+			ID:                 encoded.ID,
+			Content:            encoded.Content,
+			Type:               ca.inferMemoryType(encoded),
+			Embedding:          encoded.Embedding,
+			Importance:         encoded.Importance,
+			Emotional:          encoded.Emotional,
+			Timestamp:          encoded.Timestamp,
 			ConsolidationLevel: 0.0,
 		}
 		ca.hypergraphConsolidator.AddNode(node)
 	}
-	
+
 	// Step 3: Discover and create edges
 	edges := ca.hypergraphConsolidator.DiscoverEdges()
 	for _, edge := range edges {
 		ca.hypergraphConsolidator.AddEdge(edge)
 	}
-	
+
 	// Step 4: Perform semantic clustering
 	clusters := ca.semanticClusterer.ClusterMemories(encodedMemories)
 	result.Clusters = clusters
-	
+
 	// Step 5: Recognize patterns
 	patterns := ca.patternConsolidator.RecognizePatterns(encodedMemories)
 	result.Patterns = patterns
-	
+
 	// Step 6: Weight importance
 	for _, encoded := range encodedMemories {
 		weight := ca.importanceWeighter.CalculateWeight(encoded)
 		encoded.Importance = weight
 	}
-	
+
 	// Step 7: Consolidate based on importance and clustering
 	consolidated := ca.performConsolidation(encodedMemories, clusters, patterns)
 	result.Consolidated = consolidated
 	result.OutputCount = len(consolidated)
-	
+
 	// Step 8: Update hypergraph consolidation levels
 	ca.hypergraphConsolidator.UpdateConsolidationLevels(consolidated)
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(result.StartTime)
 	result.Success = true
-	
+
 	return result, nil
 }
 
@@ -246,41 +245,40 @@ func (ca *ConsolidationAlgorithms) performConsolidation(
 	clusters []*MemoryCluster,
 	patterns []*MemoryPattern,
 ) []*ConsolidatedMemory {
-	
 	consolidated := make([]*ConsolidatedMemory, 0)
-	
+
 	// Consolidate by clusters
 	for _, cluster := range clusters {
 		if cluster.Coherence > 0.7 && cluster.Importance > 0.5 {
 			cm := &ConsolidatedMemory{
-				ID:          fmt.Sprintf("consolidated_%s", cluster.ID),
-				Type:        "cluster",
-				SourceIDs:   cluster.Members,
-				Embedding:   cluster.Centroid,
-				Importance:  cluster.Importance,
-				Coherence:   cluster.Coherence,
-				Theme:       cluster.Theme,
-				Timestamp:   time.Now(),
+				ID:         fmt.Sprintf("consolidated_%s", cluster.ID),
+				Type:       "cluster",
+				SourceIDs:  cluster.Members,
+				Embedding:  cluster.Centroid,
+				Importance: cluster.Importance,
+				Coherence:  cluster.Coherence,
+				Theme:      cluster.Theme,
+				Timestamp:  time.Now(),
 			}
 			consolidated = append(consolidated, cm)
 		}
 	}
-	
+
 	// Consolidate by patterns
 	for _, pattern := range patterns {
 		if pattern.Strength > 0.6 && pattern.Frequency > 2 {
 			cm := &ConsolidatedMemory{
-				ID:          fmt.Sprintf("consolidated_%s", pattern.ID),
-				Type:        "pattern",
-				SourceIDs:   pattern.Instances,
-				Importance:  pattern.Strength,
-				Theme:       pattern.Type,
-				Timestamp:   time.Now(),
+				ID:         fmt.Sprintf("consolidated_%s", pattern.ID),
+				Type:       "pattern",
+				SourceIDs:  pattern.Instances,
+				Importance: pattern.Strength,
+				Theme:      pattern.Type,
+				Timestamp:  time.Now(),
 			}
 			consolidated = append(consolidated, cm)
 		}
 	}
-	
+
 	return consolidated
 }
 
@@ -313,24 +311,24 @@ type ConsolidationResult struct {
 
 // ConsolidatedMemory represents a consolidated memory
 type ConsolidatedMemory struct {
-	ID          string
-	Type        string
-	SourceIDs   []string
-	Embedding   []float64
-	Importance  float64
-	Coherence   float64
-	Theme       string
-	Timestamp   time.Time
+	ID         string
+	Type       string
+	SourceIDs  []string
+	Embedding  []float64
+	Importance float64
+	Coherence  float64
+	Theme      string
+	Timestamp  time.Time
 }
 
 // EncodedMemory represents a tensor-encoded memory
 type EncodedMemory struct {
-	ID          string
-	Content     interface{}
-	Embedding   []float64
-	Importance  float64
-	Emotional   float64
-	Timestamp   time.Time
+	ID         string
+	Content    interface{}
+	Embedding  []float64
+	Importance float64
+	Emotional  float64
+	Timestamp  time.Time
 }
 
 // HypergraphConsolidator implementation
@@ -359,17 +357,17 @@ func (hc *HypergraphConsolidator) AddEdge(edge *HypergraphMemoryEdge) {
 func (hc *HypergraphConsolidator) DiscoverEdges() []*HypergraphMemoryEdge {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	edges := make([]*HypergraphMemoryEdge, 0)
-	
+
 	// Discover temporal edges
 	nodeList := make([]*HypergraphMemoryNode, 0, len(hc.nodes))
 	for _, node := range hc.nodes {
 		nodeList = append(nodeList, node)
 	}
-	
+
 	// Sort by timestamp and create temporal edges
-	for i := 0; i < len(nodeList)-1; i++ {
+	for i := range len(nodeList) - 1 {
 		for j := i + 1; j < len(nodeList); j++ {
 			if nodeList[j].Timestamp.Sub(nodeList[i].Timestamp) < 5*time.Minute {
 				edge := &HypergraphMemoryEdge{
@@ -384,9 +382,9 @@ func (hc *HypergraphConsolidator) DiscoverEdges() []*HypergraphMemoryEdge {
 			}
 		}
 	}
-	
+
 	// Discover semantic edges based on embedding similarity
-	for i := 0; i < len(nodeList)-1; i++ {
+	for i := range len(nodeList) - 1 {
 		for j := i + 1; j < len(nodeList); j++ {
 			similarity := cosineSimilarity(nodeList[i].Embedding, nodeList[j].Embedding)
 			if similarity > 0.7 {
@@ -402,14 +400,14 @@ func (hc *HypergraphConsolidator) DiscoverEdges() []*HypergraphMemoryEdge {
 			}
 		}
 	}
-	
+
 	return edges
 }
 
 func (hc *HypergraphConsolidator) UpdateConsolidationLevels(consolidated []*ConsolidatedMemory) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	for _, cm := range consolidated {
 		for _, sourceID := range cm.SourceIDs {
 			if node, ok := hc.nodes[sourceID]; ok {
@@ -432,14 +430,14 @@ func NewMemoryTensorEncoder(embeddingDim int) *MemoryTensorEncoder {
 func (mte *MemoryTensorEncoder) Encode(trace *MemoryTrace) (*EncodedMemory, error) {
 	mte.mu.Lock()
 	defer mte.mu.Unlock()
-	
+
 	// Generate embedding from content
 	// In production, this would use a proper embedding model
 	embedding := make([]float64, mte.embeddingDim)
 	for i := range embedding {
 		embedding[i] = math.Sin(float64(i) * trace.Importance)
 	}
-	
+
 	return &EncodedMemory{
 		ID:         trace.ID,
 		Content:    trace.Content,
@@ -458,7 +456,7 @@ func NewTensorEncoder(inputDim, outputDim int) *TensorEncoder {
 			weights[i][j] = (math.Sin(float64(i+j)) + 1.0) / 2.0
 		}
 	}
-	
+
 	return &TensorEncoder{
 		inputDim:  inputDim,
 		outputDim: outputDim,
@@ -480,19 +478,19 @@ func NewPatternBasedConsolidator() *PatternBasedConsolidator {
 func (pbc *PatternBasedConsolidator) RecognizePatterns(memories []*EncodedMemory) []*MemoryPattern {
 	pbc.mu.Lock()
 	defer pbc.mu.Unlock()
-	
+
 	patterns := make([]*MemoryPattern, 0)
-	
+
 	// Simple pattern recognition based on temporal and semantic clustering
 	// Group memories by time windows
 	timeWindow := 1 * time.Hour
 	groups := make(map[int64][]*EncodedMemory)
-	
+
 	for _, mem := range memories {
 		bucket := mem.Timestamp.Unix() / int64(timeWindow.Seconds())
 		groups[bucket] = append(groups[bucket], mem)
 	}
-	
+
 	// Create patterns from groups
 	for bucket, group := range groups {
 		if len(group) >= 2 {
@@ -509,7 +507,7 @@ func (pbc *PatternBasedConsolidator) RecognizePatterns(memories []*EncodedMemory
 			patterns = append(patterns, pattern)
 		}
 	}
-	
+
 	return patterns
 }
 
@@ -526,14 +524,14 @@ func NewSemanticClusterer(maxClusters int, threshold float64) *SemanticClusterer
 func (sc *SemanticClusterer) ClusterMemories(memories []*EncodedMemory) []*MemoryCluster {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
-	
+
 	// Simple k-means-like clustering
 	clusters := make([]*MemoryCluster, 0)
-	
+
 	if len(memories) == 0 {
 		return clusters
 	}
-	
+
 	// Initialize first cluster
 	firstCluster := &MemoryCluster{
 		ID:         "cluster_0",
@@ -544,12 +542,12 @@ func (sc *SemanticClusterer) ClusterMemories(memories []*EncodedMemory) []*Memor
 		Theme:      "general",
 	}
 	clusters = append(clusters, firstCluster)
-	
+
 	// Assign remaining memories to clusters
 	for i := 1; i < len(memories); i++ {
 		bestCluster := 0
 		bestSimilarity := cosineSimilarity(memories[i].Embedding, clusters[0].Centroid)
-		
+
 		for j := 1; j < len(clusters); j++ {
 			similarity := cosineSimilarity(memories[i].Embedding, clusters[j].Centroid)
 			if similarity > bestSimilarity {
@@ -557,7 +555,7 @@ func (sc *SemanticClusterer) ClusterMemories(memories []*EncodedMemory) []*Memor
 				bestCluster = j
 			}
 		}
-		
+
 		if bestSimilarity > sc.similarityThreshold {
 			clusters[bestCluster].Members = append(clusters[bestCluster].Members, memories[i].ID)
 			clusters[bestCluster].Importance = (clusters[bestCluster].Importance + memories[i].Importance) / 2.0
@@ -573,7 +571,7 @@ func (sc *SemanticClusterer) ClusterMemories(memories []*EncodedMemory) []*Memor
 			clusters = append(clusters, newCluster)
 		}
 	}
-	
+
 	return clusters
 }
 
@@ -591,23 +589,23 @@ func NewImportanceWeighter() *ImportanceWeighter {
 func (iw *ImportanceWeighter) CalculateWeight(memory *EncodedMemory) float64 {
 	iw.mu.Lock()
 	defer iw.mu.Unlock()
-	
+
 	// Base importance
 	weight := memory.Importance
-	
+
 	// Recency bias
 	age := time.Since(memory.Timestamp).Hours()
 	recencyFactor := math.Exp(-age / 24.0) // Decay over days
 	weight += iw.recencyBias * recencyFactor
-	
+
 	// Emotional bias
 	weight += iw.emotionalBias * memory.Emotional
-	
+
 	// Normalize
 	if weight > 1.0 {
 		weight = 1.0
 	}
-	
+
 	iw.weights[memory.ID] = weight
 	return weight
 }
@@ -618,20 +616,20 @@ func cosineSimilarity(a, b []float64) float64 {
 	if len(a) != len(b) {
 		return 0.0
 	}
-	
+
 	dotProduct := 0.0
 	normA := 0.0
 	normB := 0.0
-	
+
 	for i := range a {
 		dotProduct += a[i] * b[i]
 		normA += a[i] * a[i]
 		normB += b[i] * b[i]
 	}
-	
+
 	if normA == 0 || normB == 0 {
 		return 0.0
 	}
-	
+
 	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
 }

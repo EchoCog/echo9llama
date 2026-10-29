@@ -139,10 +139,10 @@ func (ca *ConsciousnessAdapter) processAssessmentPlanningCoupling(coupling *Coup
 
 		// Create goal-directed plan
 		plan := map[string]interface{}{
-			"needs_assessment": assessment,
-			"generated_ideas":  planning,
+			"needs_assessment":  assessment,
+			"generated_ideas":   planning,
 			"coupling_strength": coupling.Strength,
-			"type":             "goal_directed_plan",
+			"type":              "goal_directed_plan",
 		}
 
 		log.Printf("  ✨ Goal-directed plan created: %v", plan)

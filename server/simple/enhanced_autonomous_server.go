@@ -120,15 +120,15 @@ func main() {
 func getStatus(consciousness *deeptreeecho.EnhancedAutonomousConsciousness) map[string]interface{} {
 	// Note: This is a simplified status - in production would expose more metrics
 	return map[string]interface{}{
-		"running":    true,
-		"timestamp":  time.Now().Format(time.RFC3339),
-		"system":     "Enhanced Autonomous Consciousness",
-		"version":    "Iteration 5",
+		"running":   true,
+		"timestamp": time.Now().Format(time.RFC3339),
+		"system":    "Enhanced Autonomous Consciousness",
+		"version":   "Iteration 5",
 		"features": map[string]bool{
-			"persistent_memory":    true,
-			"llm_integration":      true,
+			"persistent_memory":     true,
+			"llm_integration":       true,
 			"twelve_step_echobeats": true,
-			"skill_practice":       true,
+			"skill_practice":        true,
 			"autonomous_discussion": true,
 		},
 	}

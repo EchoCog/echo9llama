@@ -67,8 +67,6 @@ type CachedTraversal struct {
 
 // ParallelPatternMatcher performs parallel pattern matching on hypergraphs
 type ParallelPatternMatcher struct {
-	mu         sync.RWMutex
-	patterns   []*HypergraphPattern
 	matchers   []*PatternMatcherWorker
 	resultChan chan *PatternMatchResult
 }
@@ -92,7 +90,6 @@ type PatternConstraint struct {
 // PatternMatcherWorker performs pattern matching in parallel
 type PatternMatcherWorker struct {
 	id       int
-	patterns []*HypergraphPattern
 	workChan chan *PatternMatchJob
 	results  chan *PatternMatchResult
 }
@@ -506,13 +503,12 @@ func (tc *TraversalCache) generateKey(traversal *GraphTraversal) string {
 // NewParallelPatternMatcher creates a new parallel pattern matcher
 func NewParallelPatternMatcher(numWorkers int) *ParallelPatternMatcher {
 	pm := &ParallelPatternMatcher{
-		patterns:   make([]*HypergraphPattern, 0),
 		matchers:   make([]*PatternMatcherWorker, numWorkers),
 		resultChan: make(chan *PatternMatchResult, 100),
 	}
 
 	// Initialize workers
-	for i := 0; i < numWorkers; i++ {
+	for i := range numWorkers {
 		pm.matchers[i] = &PatternMatcherWorker{
 			id:       i,
 			workChan: make(chan *PatternMatchJob, 10),

@@ -15,7 +15,7 @@ type EchoBeats struct {
 	mu sync.RWMutex
 	// Model that writes scheduled autonomous thoughts (nil = none emitted)
 	thoughtSource ThoughtSource
-	ctx           context.Context
+	ctx           context.Context //nolint:containedctx // lifecycle context owned by this scheduler
 	cancel        context.CancelFunc
 
 	// Event queue with priority
@@ -137,9 +137,6 @@ func (pq *PriorityQueue) Pop() interface{} {
 // CycleManager manages wake/rest cycles
 type CycleManager struct {
 	mu              sync.RWMutex
-	currentCycle    int
-	wakeTime        time.Time
-	restTime        time.Time
 	cycleDuration   time.Duration
 	restDuration    time.Duration
 	cognitiveLoad   float64

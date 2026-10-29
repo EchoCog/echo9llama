@@ -12,23 +12,21 @@ import (
 // SupabasePersistence implements full persistence operations for Deep Tree Echo
 type SupabasePersistence struct {
 	client *SupabaseClient
-	ctx    context.Context
 }
 
 // NewSupabasePersistence creates a new Supabase persistence layer
 func NewSupabasePersistence(ctx context.Context, url, key string) (*SupabasePersistence, error) {
 	client := NewSupabaseClient(url, key)
-	
+
 	sp := &SupabasePersistence{
 		client: client,
-		ctx:    ctx,
 	}
-	
+
 	// Initialize schema
 	if err := sp.initializeSchema(); err != nil {
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
-	
+
 	return sp, nil
 }
 
@@ -52,7 +50,7 @@ func (sp *SupabasePersistence) StoreNode(node *MemoryNode) error {
 		node.CreatedAt = time.Now()
 	}
 	node.UpdatedAt = time.Now()
-	
+
 	return sp.client.Insert("memory_nodes", node)
 }
 
@@ -64,21 +62,21 @@ func (sp *SupabasePersistence) RetrieveNode(id string) (*MemoryNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(results) == 0 {
 		return nil, fmt.Errorf("node not found: %s", id)
 	}
-	
+
 	var node MemoryNode
 	data, err := json.Marshal(results[0])
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := json.Unmarshal(data, &node); err != nil {
 		return nil, err
 	}
-	
+
 	return &node, nil
 }
 
@@ -90,7 +88,7 @@ func (sp *SupabasePersistence) QueryNodesByType(nodeType NodeType, limit int) ([
 	if err != nil {
 		return nil, err
 	}
-	
+
 	nodes := make([]*MemoryNode, 0, len(results))
 	for _, result := range results {
 		var node MemoryNode
@@ -103,7 +101,7 @@ func (sp *SupabasePersistence) QueryNodesByType(nodeType NodeType, limit int) ([
 		}
 		nodes = append(nodes, &node)
 	}
-	
+
 	return nodes, nil
 }
 
@@ -115,7 +113,7 @@ func (sp *SupabasePersistence) StoreEdge(edge *MemoryEdge) error {
 	if edge.CreatedAt.IsZero() {
 		edge.CreatedAt = time.Now()
 	}
-	
+
 	return sp.client.Insert("memory_edges", edge)
 }
 
@@ -127,7 +125,7 @@ func (sp *SupabasePersistence) QueryEdgesFromNode(nodeID string) ([]*MemoryEdge,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	edges := make([]*MemoryEdge, 0, len(results))
 	for _, result := range results {
 		var edge MemoryEdge
@@ -140,7 +138,7 @@ func (sp *SupabasePersistence) QueryEdgesFromNode(nodeID string) ([]*MemoryEdge,
 		}
 		edges = append(edges, &edge)
 	}
-	
+
 	return edges, nil
 }
 
@@ -152,7 +150,7 @@ func (sp *SupabasePersistence) QueryEdgesToNode(nodeID string) ([]*MemoryEdge, e
 	if err != nil {
 		return nil, err
 	}
-	
+
 	edges := make([]*MemoryEdge, 0, len(results))
 	for _, result := range results {
 		var edge MemoryEdge
@@ -165,7 +163,7 @@ func (sp *SupabasePersistence) QueryEdgesToNode(nodeID string) ([]*MemoryEdge, e
 		}
 		edges = append(edges, &edge)
 	}
-	
+
 	return edges, nil
 }
 
@@ -177,7 +175,7 @@ func (sp *SupabasePersistence) StoreEpisode(episode *Episode) error {
 	if episode.Timestamp.IsZero() {
 		episode.Timestamp = time.Now()
 	}
-	
+
 	return sp.client.Insert("episodes", episode)
 }
 
@@ -188,7 +186,7 @@ func (sp *SupabasePersistence) QueryRecentEpisodes(limit int) ([]*Episode, error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	episodes := make([]*Episode, 0, len(results))
 	for _, result := range results {
 		var episode Episode
@@ -201,7 +199,7 @@ func (sp *SupabasePersistence) QueryRecentEpisodes(limit int) ([]*Episode, error
 		}
 		episodes = append(episodes, &episode)
 	}
-	
+
 	return episodes, nil
 }
 
@@ -213,7 +211,7 @@ func (sp *SupabasePersistence) StoreIdentitySnapshot(snapshot *IdentitySnapshot)
 	if snapshot.Timestamp.IsZero() {
 		snapshot.Timestamp = time.Now()
 	}
-	
+
 	return sp.client.Insert("identity_snapshots", snapshot)
 }
 
@@ -224,21 +222,21 @@ func (sp *SupabasePersistence) RetrieveLatestIdentitySnapshot() (*IdentitySnapsh
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no identity snapshots found")
 	}
-	
+
 	var snapshot IdentitySnapshot
 	data, err := json.Marshal(results[0])
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := json.Unmarshal(data, &snapshot); err != nil {
 		return nil, err
 	}
-	
+
 	return &snapshot, nil
 }
 
@@ -250,7 +248,7 @@ func (sp *SupabasePersistence) StoreDreamJournal(journal *DreamJournal) error {
 	if journal.Timestamp.IsZero() {
 		journal.Timestamp = time.Now()
 	}
-	
+
 	return sp.client.Insert("dream_journals", journal)
 }
 
@@ -258,36 +256,36 @@ func (sp *SupabasePersistence) StoreDreamJournal(journal *DreamJournal) error {
 func (sp *SupabasePersistence) TraverseGraph(startNodeID string, maxDepth int, edgeTypes []EdgeType) ([]*MemoryNode, error) {
 	visited := make(map[string]bool)
 	nodes := make([]*MemoryNode, 0)
-	
+
 	// BFS queue
 	type queueItem struct {
 		nodeID string
 		depth  int
 	}
 	queue := []queueItem{{nodeID: startNodeID, depth: 0}}
-	
+
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		
+
 		if visited[current.nodeID] || current.depth > maxDepth {
 			continue
 		}
 		visited[current.nodeID] = true
-		
+
 		// Retrieve node
 		node, err := sp.RetrieveNode(current.nodeID)
 		if err != nil {
 			continue
 		}
 		nodes = append(nodes, node)
-		
+
 		// Get outgoing edges
 		edges, err := sp.QueryEdgesFromNode(current.nodeID)
 		if err != nil {
 			continue
 		}
-		
+
 		// Filter by edge type if specified
 		for _, edge := range edges {
 			if len(edgeTypes) > 0 {
@@ -302,14 +300,14 @@ func (sp *SupabasePersistence) TraverseGraph(startNodeID string, maxDepth int, e
 					continue
 				}
 			}
-			
+
 			queue = append(queue, queueItem{
 				nodeID: edge.TargetID,
 				depth:  current.depth + 1,
 			})
 		}
 	}
-	
+
 	return nodes, nil
 }
 
@@ -319,13 +317,13 @@ func (sp *SupabasePersistence) FindRelatedNodes(nodeID string, edgeTypes []EdgeT
 	if err != nil {
 		return nil, err
 	}
-	
+
 	nodes := make([]*MemoryNode, 0)
 	for _, edge := range edges {
 		if len(nodes) >= limit {
 			break
 		}
-		
+
 		// Check edge type
 		if len(edgeTypes) > 0 {
 			matchType := false
@@ -339,7 +337,7 @@ func (sp *SupabasePersistence) FindRelatedNodes(nodeID string, edgeTypes []EdgeT
 				continue
 			}
 		}
-		
+
 		// Retrieve target node
 		node, err := sp.RetrieveNode(edge.TargetID)
 		if err != nil {
@@ -347,37 +345,37 @@ func (sp *SupabasePersistence) FindRelatedNodes(nodeID string, edgeTypes []EdgeT
 		}
 		nodes = append(nodes, node)
 	}
-	
+
 	return nodes, nil
 }
 
 // GetMemoryContext retrieves contextual memories for thought generation
 func (sp *SupabasePersistence) GetMemoryContext(thoughtType string, limit int) (map[string]interface{}, error) {
 	context := make(map[string]interface{})
-	
+
 	// Get recent episodes
 	episodes, err := sp.QueryRecentEpisodes(5)
 	if err == nil && len(episodes) > 0 {
 		context["recent_episodes"] = episodes
 	}
-	
+
 	// Get relevant concepts
 	concepts, err := sp.QueryNodesByType(NodeConcept, 10)
 	if err == nil && len(concepts) > 0 {
 		context["concepts"] = concepts
 	}
-	
+
 	// Get recent thoughts
 	thoughts, err := sp.QueryNodesByType(NodeThought, 10)
 	if err == nil && len(thoughts) > 0 {
 		context["recent_thoughts"] = thoughts
 	}
-	
+
 	// Get active goals
 	goals, err := sp.QueryNodesByType(NodeGoal, 5)
 	if err == nil && len(goals) > 0 {
 		context["active_goals"] = goals
 	}
-	
+
 	return context, nil
 }

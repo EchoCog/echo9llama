@@ -36,27 +36,27 @@ type FiveChannelManager struct {
 
 // FiveChannelMetrics tracks metrics for all 5 channels
 type FiveChannelMetrics struct {
-	TotalSteps       int
-	CurrentStep      int
-	CycleNumber      int
-	CognitiveLoad    float64
-	StreamCoherence  float64
-	IdentityCoherence float64
+	TotalSteps         int
+	CurrentStep        int
+	CycleNumber        int
+	CognitiveLoad      float64
+	StreamCoherence    float64
+	IdentityCoherence  float64
 	NarrativeAlignment float64
-	PhaseMetrics     [3]PhaseMetrics
-	OpponentMetrics  GlobalChannelMetrics
-	NarrativeMetrics GlobalChannelMetrics
-	StartTime        time.Time
+	PhaseMetrics       [3]PhaseMetrics
+	OpponentMetrics    GlobalChannelMetrics
+	NarrativeMetrics   GlobalChannelMetrics
+	StartTime          time.Time
 }
 
 // GlobalChannelMetrics tracks metrics for a global channel
 type GlobalChannelMetrics struct {
-	ChannelID        int
-	ChannelName      string
-	StepsProcessed   int
-	CurrentTerm      Term
-	CurrentMode      Mode
-	LastProcessedAt  time.Time
+	ChannelID       int
+	ChannelName     string
+	StepsProcessed  int
+	CurrentTerm     Term
+	CurrentMode     Mode
+	LastProcessedAt time.Time
 }
 
 // NewFiveChannelManager creates a new 5-channel concurrent cognitive system
@@ -71,7 +71,7 @@ func NewFiveChannelManager(processor PhaseProcessor, integrator ConsciousnessInt
 	}
 
 	// Initialize 3 embodied phases
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		fcm.phases[i] = &CognitivePhase{
 			id:           i,
 			processor:    processor,
@@ -104,7 +104,7 @@ func (fcm *FiveChannelManager) Start() error {
 	log.Println("   2 Global Orchestrators (g2 opponent, g3 narrative)")
 
 	// Start 3 embodied phases
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		go fcm.runPhase(i)
 	}
 
@@ -349,7 +349,7 @@ func (fcm *FiveChannelManager) collectGlobalStreams() []*GlobalStream {
 	streams := make([]*GlobalStream, 0, 2)
 
 	// Collect from global integrator channels
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		select {
 		case stream := <-fcm.globalIntegrator.globalStreams:
 			streams = append(streams, stream)

@@ -91,8 +91,7 @@ func updateFrameworkFromIdentity(framework *OrganizationalIdentityFramework, ide
 	// Update persona model based on identity characteristics
 	if framework.PersonaModel != nil && identity.EmotionalState != nil {
 		// Update emotional profile
-		framework.PersonaModel.EmotionalProfile.PrimaryEmotions[identity.EmotionalState.Primary.Type] =
-			identity.EmotionalState.Primary.Strength
+		framework.PersonaModel.EmotionalProfile.PrimaryEmotions[identity.EmotionalState.Primary.Type] = identity.EmotionalState.Primary.Strength
 		framework.PersonaModel.EmotionalProfile.EmotionalIntensity = identity.EmotionalState.Intensity
 	}
 

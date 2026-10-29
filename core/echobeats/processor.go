@@ -40,7 +40,6 @@ type DefaultPhaseProcessor struct {
 	actionSequence   []string
 	balanceState     float64
 	previousBalance  float64
-	consciousnessRef interface{} // Reference to consciousness system
 	ideaSource       IdeaSource
 	actionExecutor   ActionExecutor
 }

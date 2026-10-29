@@ -26,18 +26,18 @@ type OpponentPair struct {
 
 // Process represents a cognitive process with influence on decision-making
 type Process struct {
-	Name        string
-	Activation  float64
-	Weight      float64
-	Influence   func(*Identity) float64
+	Name       string
+	Activation float64
+	Weight     float64
+	Influence  func(*Identity) float64
 }
 
 // BalancePoint represents a moment in balance history
 type BalancePoint struct {
-	Timestamp  time.Time
-	Balance    float64
-	Context    string
-	Outcome    float64 // How well did this balance work?
+	Timestamp time.Time
+	Balance   float64
+	Context   string
+	Outcome   float64 // How well did this balance work?
 }
 
 // BalanceSnapshot captures system-wide balance state

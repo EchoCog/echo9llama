@@ -18,7 +18,7 @@ import (
 // stream-of-consciousness awareness
 type AutonomousConsciousness struct {
 	mu     sync.RWMutex
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx // lifecycle context owned by this consciousness
 	cancel context.CancelFunc
 
 	// Core identity
@@ -527,7 +527,7 @@ func (ac *AutonomousConsciousness) learnFromExperience() {
 	}
 
 	// Look for patterns
-	for i := 0; i < len(thoughts)-1; i++ {
+	for i := range len(thoughts) - 1 {
 		for j := i + 1; j < len(thoughts); j++ {
 			// Simple pattern detection
 			if thoughts[i].Type == thoughts[j].Type {
@@ -593,21 +593,6 @@ func (ac *AutonomousConsciousness) updateInterestDecay() {
 	for topic := range ac.interests.topics {
 		ac.interests.topics[topic] *= 0.95
 	}
-}
-
-// getTopInterest returns the topic with highest interest
-func (ac *AutonomousConsciousness) getTopInterest() string {
-	maxInterest := 0.0
-	topTopic := "wisdom"
-
-	for topic, interest := range ac.interests.topics {
-		if interest > maxInterest {
-			maxInterest = interest
-			topTopic = topic
-		}
-	}
-
-	return topTopic
 }
 
 // shouldWake determines if consciousness should wake
@@ -767,29 +752,5 @@ func (ac *AutonomousConsciousness) persistThought(thought *Thought) {
 		if err := ac.persistence.SaveThought(thought); err != nil {
 			fmt.Printf("⚠️  Failed to persist thought: %v\n", err)
 		}
-	}
-}
-
-// persistIdentitySnapshot persists current identity state
-func (ac *AutonomousConsciousness) persistIdentitySnapshot() {
-	if ac.persistence == nil {
-		return
-	}
-
-	snapshot := &IdentitySnapshot{
-		ID:          fmt.Sprintf("snapshot_%d", time.Now().UnixNano()),
-		Timestamp:   time.Now(),
-		Name:        ac.identity.Name,
-		Coherence:   ac.identity.Coherence,
-		Iterations:  int(ac.identity.Iterations),
-		CoreBeliefs: make(map[string]interface{}),
-		Emotional: map[string]interface{}{
-			"intensity": ac.identity.EmotionalState.Intensity,
-			"valence":   ac.identity.EmotionalState.Valence,
-		},
-	}
-
-	if err := ac.persistence.SaveIdentitySnapshot(snapshot); err != nil {
-		fmt.Printf("⚠️  Failed to persist identity snapshot: %v\n", err)
 	}
 }
