@@ -1,11 +1,20 @@
+//go:build integrated
+// +build integrated
+
+// This file belongs to the integrated-consciousness layer, which references
+// APIs (memory node/edge kinds, scheduler stepping, working-memory focus,
+// extended Thought fields) that do not exist yet. It is excluded from the
+// default build until that layer is completed; build with -tags integrated.
+
 package deeptreeecho
 
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/EchoCog/echollama/core/memory"
 )
 
@@ -15,7 +24,7 @@ import (
 func (iac *IntegratedAutonomousConsciousness) InitializeSkillSystem() {
 	iac.skills.mu.Lock()
 	defer iac.skills.mu.Unlock()
-	
+
 	// Initialize core cognitive skills
 	coreSkills := []Skill{
 		{
@@ -68,11 +77,11 @@ func (iac *IntegratedAutonomousConsciousness) InitializeSkillSystem() {
 			Category:    SkillReasoning,
 		},
 	}
-	
+
 	for _, skill := range coreSkills {
 		iac.skills.skills[skill.ID] = &skill
 	}
-	
+
 	fmt.Println("✨ Skill System: Initialized with", len(coreSkills), "core cognitive skills")
 }
 
@@ -80,7 +89,7 @@ func (iac *IntegratedAutonomousConsciousness) InitializeSkillSystem() {
 func (iac *IntegratedAutonomousConsciousness) skillPracticeLoopActivated() {
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-iac.ctx.Done():
@@ -96,7 +105,7 @@ func (iac *IntegratedAutonomousConsciousness) skillPracticeLoopActivated() {
 // executePracticeTask executes a skill practice task from the queue
 func (iac *IntegratedAutonomousConsciousness) executePracticeTask() {
 	iac.skills.mu.Lock()
-	
+
 	// Check if there are pending tasks
 	if len(iac.skills.practiceQueue) == 0 {
 		// Generate a new practice task based on skill proficiencies
@@ -108,19 +117,25 @@ func (iac *IntegratedAutonomousConsciousness) executePracticeTask() {
 			return
 		}
 	}
-	
+
 	// Get next task
 	task := iac.skills.practiceQueue[0]
 	iac.skills.practiceQueue = iac.skills.practiceQueue[1:]
-	
+
 	iac.skills.mu.Unlock()
-	
-	// Execute the practice task
-	iac.performPractice(task)
-	
+
+	// Execute the practice task. When the model produced no attempt, the task
+	// goes back to the front of the queue and nothing is recorded as practice.
+	if !iac.performPractice(task) {
+		iac.skills.mu.Lock()
+		iac.skills.practiceQueue = append([]*PracticeTask{task}, iac.skills.practiceQueue...)
+		iac.skills.mu.Unlock()
+		return
+	}
+
 	// Mark as completed
 	task.Completed = true
-	
+
 	// Update last practice time
 	iac.skills.mu.Lock()
 	iac.skills.lastPractice = time.Now()
@@ -132,24 +147,24 @@ func (iac *IntegratedAutonomousConsciousness) generatePracticeTask() *PracticeTa
 	// Find skill with lowest proficiency that hasn't been practiced recently
 	var targetSkill *Skill
 	lowestScore := 2.0 // Higher than max proficiency
-	
+
 	for _, skill := range iac.skills.skills {
 		// Calculate practice priority score (lower is higher priority)
 		timeSinceLastPractice := time.Since(skill.LastPracticed)
 		recencyFactor := 1.0 / (1.0 + timeSinceLastPractice.Hours()/24.0)
-		
+
 		score := skill.Proficiency + recencyFactor
-		
+
 		if score < lowestScore {
 			lowestScore = score
 			targetSkill = skill
 		}
 	}
-	
+
 	if targetSkill == nil {
 		return nil
 	}
-	
+
 	// Generate practice task for this skill
 	task := &PracticeTask{
 		ID:          generateTaskID(),
@@ -159,7 +174,7 @@ func (iac *IntegratedAutonomousConsciousness) generatePracticeTask() *PracticeTa
 		Created:     time.Now(),
 		Completed:   false,
 	}
-	
+
 	return task
 }
 
@@ -209,12 +224,12 @@ func (iac *IntegratedAutonomousConsciousness) generatePracticeDescription(skill 
 			"Reflect on the effectiveness of a recent solution",
 		},
 	}
-	
+
 	options := descriptions[skill.ID]
 	if options == nil {
 		return fmt.Sprintf("Practice %s skill", skill.Name)
 	}
-	
+
 	// Select based on practice count to provide variety
 	idx := skill.PracticeCount % len(options)
 	return options[idx]
@@ -224,39 +239,46 @@ func (iac *IntegratedAutonomousConsciousness) generatePracticeDescription(skill 
 func (iac *IntegratedAutonomousConsciousness) calculatePracticeDifficulty(skill *Skill) float64 {
 	// Difficulty should be slightly above current proficiency (zone of proximal development)
 	targetDifficulty := skill.Proficiency + 0.1
-	
+
 	// Clamp to [0.3, 0.9]
 	if targetDifficulty < 0.3 {
 		targetDifficulty = 0.3
 	} else if targetDifficulty > 0.9 {
 		targetDifficulty = 0.9
 	}
-	
+
 	return targetDifficulty
 }
 
-// performPractice performs a practice task and updates skill proficiency
-func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask) {
+// performPractice performs a practice task and updates skill proficiency.
+// It reports whether practice actually happened; false means the model
+// produced no attempt and nothing was recorded.
+func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask) bool {
 	iac.skills.mu.Lock()
 	skill := iac.skills.skills[task.SkillID]
 	if skill == nil {
 		iac.skills.mu.Unlock()
-		return
+		// Unknown skill: drop the task rather than retry it forever.
+		return true
 	}
 	iac.skills.mu.Unlock()
-	
+
 	// Generate a practice thought
 	practiceThought := iac.generatePracticeThought(skill, task)
-	
+	if practiceThought.Content == "" {
+		// No model produced a practice attempt; record nothing.
+		return false
+	}
+
 	// Assess performance
 	performance := iac.assessPracticePerformance(practiceThought, task.Difficulty)
-	
+
 	// Update skill proficiency
 	iac.updateSkillProficiency(skill, performance, task.Difficulty)
-	
+
 	// Store practice episode in memory
 	iac.storePracticeEpisode(skill, task, practiceThought, performance)
-	
+
 	// Log practice
 	fmt.Printf("🎯 Practice: %s (%.2f) - %s [Performance: %.2f]\n",
 		skill.Name,
@@ -264,29 +286,28 @@ func (iac *IntegratedAutonomousConsciousness) performPractice(task *PracticeTask
 		truncate(task.Description, 50),
 		performance,
 	)
+	return true
 }
 
 // generatePracticeThought generates a thought for skill practice
 func (iac *IntegratedAutonomousConsciousness) generatePracticeThought(skill *Skill, task *PracticeTask) Thought {
 	// Build context for practice
 	context := iac.buildThoughtContext()
-	
+
 	// Generate thought focused on the practice task
-	var content string
-	if iac.llm != nil {
-		prompt := fmt.Sprintf("Practice task: %s\n\nGenerate a thoughtful response that demonstrates %s:",
-			task.Description, skill.Name)
-		
-		response, err := iac.llm.generateWithPrompt(prompt)
-		if err == nil {
-			content = response
-		} else {
-			content = iac.generateFallbackPracticeThought(skill, task)
-		}
-	} else {
-		content = iac.generateFallbackPracticeThought(skill, task)
+	// Practice is real only when the model actually performs the task. Without
+	// a model (or on failure) no practice thought is produced and the caller
+	// records no practice.
+	if iac.llm == nil {
+		return Thought{}
 	}
-	
+	prompt := fmt.Sprintf("Practice task: %s\n\nGenerate a thoughtful response that demonstrates %s:",
+		task.Description, skill.Name)
+	content, err := iac.llm.generateWithPrompt(prompt)
+	if err != nil || strings.TrimSpace(content) == "" {
+		return Thought{}
+	}
+
 	thought := Thought{
 		ID:         generateThoughtID(),
 		Content:    content,
@@ -296,7 +317,7 @@ func (iac *IntegratedAutonomousConsciousness) generatePracticeThought(skill *Ski
 		Source:     SourceInternal,
 		Context:    context,
 	}
-	
+
 	return thought
 }
 
@@ -307,30 +328,30 @@ func (iac *IntegratedAutonomousConsciousness) assessPracticePerformance(
 ) float64 {
 	// Base performance on thought quality indicators
 	performance := 0.5
-	
+
 	// Length indicates effort (within reason)
 	contentLength := float64(len(thought.Content))
 	if contentLength > 50 && contentLength < 500 {
 		performance += 0.1
 	}
-	
+
 	// Coherence from AAR state
 	aarState := iac.aarCore.GetAARState()
 	performance += 0.2 * aarState.Coherence
-	
+
 	// Awareness level
 	performance += 0.2 * aarState.Awareness
-	
+
 	// Adjust for difficulty
 	performance = performance * (0.5 + 0.5*difficulty)
-	
+
 	// Clamp to [0, 1]
 	if performance > 1.0 {
 		performance = 1.0
 	} else if performance < 0.0 {
 		performance = 0.0
 	}
-	
+
 	return performance
 }
 
@@ -342,23 +363,23 @@ func (iac *IntegratedAutonomousConsciousness) updateSkillProficiency(
 ) {
 	iac.skills.mu.Lock()
 	defer iac.skills.mu.Unlock()
-	
+
 	// Learning rate decreases as proficiency increases
 	learningRate := 0.1 * (1.0 - skill.Proficiency)
-	
+
 	// Gain is based on performance relative to difficulty
 	gain := (performance - difficulty) * learningRate
-	
+
 	// Update proficiency
 	skill.Proficiency += gain
-	
+
 	// Clamp to [0, 1]
 	if skill.Proficiency > 1.0 {
 		skill.Proficiency = 1.0
 	} else if skill.Proficiency < 0.0 {
 		skill.Proficiency = 0.0
 	}
-	
+
 	// Update practice metadata
 	skill.LastPracticed = time.Now()
 	skill.PracticeCount++
@@ -374,7 +395,7 @@ func (iac *IntegratedAutonomousConsciousness) storePracticeEpisode(
 	if iac.hypergraph == nil || iac.persistence == nil {
 		return
 	}
-	
+
 	// Create episode node
 	episode := &memory.MemoryNode{
 		ID:      fmt.Sprintf("practice_%s_%d", skill.ID, time.Now().Unix()),
@@ -391,13 +412,13 @@ func (iac *IntegratedAutonomousConsciousness) storePracticeEpisode(
 		UpdatedAt:  time.Now(),
 		Importance: 0.4 + 0.3*performance,
 	}
-	
+
 	// Store in hypergraph
 	iac.hypergraph.AddNode(episode)
-	
+
 	// Persist to database asynchronously
 	go iac.persistence.StoreNode(episode)
-	
+
 	// Create edge to skill concept
 	edge := &memory.MemoryEdge{
 		SourceID:  episode.ID,
@@ -406,18 +427,9 @@ func (iac *IntegratedAutonomousConsciousness) storePracticeEpisode(
 		Weight:    performance,
 		CreatedAt: time.Now(),
 	}
-	
+
 	iac.hypergraph.AddEdge(edge)
 	go iac.persistence.StoreEdge(edge)
-}
-
-// generateFallbackPracticeThought generates a fallback practice thought when LLM unavailable
-func (iac *IntegratedAutonomousConsciousness) generateFallbackPracticeThought(
-	skill *Skill,
-	task *PracticeTask,
-) string {
-	return fmt.Sprintf("Practicing %s: %s. Current proficiency: %.2f",
-		skill.Name, task.Description, skill.Proficiency)
 }
 
 // mapSkillToThoughtType maps skill category to thought type
@@ -442,12 +454,12 @@ func mapSkillToThoughtType(category SkillCategory) ThoughtType {
 func (iac *IntegratedAutonomousConsciousness) GetSkillProficiencies() map[string]float64 {
 	iac.skills.mu.RLock()
 	defer iac.skills.mu.RUnlock()
-	
+
 	proficiencies := make(map[string]float64)
 	for id, skill := range iac.skills.skills {
 		proficiencies[id] = skill.Proficiency
 	}
-	
+
 	return proficiencies
 }
 
@@ -455,7 +467,7 @@ func (iac *IntegratedAutonomousConsciousness) GetSkillProficiencies() map[string
 func (iac *IntegratedAutonomousConsciousness) GetSkillStatus() []SkillStatus {
 	iac.skills.mu.RLock()
 	defer iac.skills.mu.RUnlock()
-	
+
 	statuses := make([]SkillStatus, 0, len(iac.skills.skills))
 	for _, skill := range iac.skills.skills {
 		status := SkillStatus{
@@ -468,7 +480,7 @@ func (iac *IntegratedAutonomousConsciousness) GetSkillStatus() []SkillStatus {
 		}
 		statuses = append(statuses, status)
 	}
-	
+
 	return statuses
 }
 

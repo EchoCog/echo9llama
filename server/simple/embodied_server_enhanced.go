@@ -24,7 +24,6 @@ var CoreIdentity *deeptreeecho.EmbodiedCognition
 var localGGUFProvider *providers.LocalGGUFProvider
 
 // Global reference to App Storage provider for large models
-var appStorageProvider *providers.AppStorageProvider
 
 // BasicResponse represents a simple API response
 type BasicResponse struct {
@@ -52,39 +51,29 @@ func init() {
 	log.Println("🌊 Initializing Deep Tree Echo Identity as core embodied cognition...")
 	CoreIdentity = deeptreeecho.NewEmbodiedCognition("Echollama")
 
-	// Register App Storage provider for large models
-	appStorageProvider = providers.NewAppStorageProvider()
-	if appStorageProvider.IsAvailable() {
-		CoreIdentity.RegisterAIProvider("app_storage", appStorageProvider)
-		storageModels, _ := appStorageProvider.ListStorageModels()
-		log.Printf("☁️  App Storage provider registered with access to large models:")
-		log.Printf("   Bucket: %s", os.Getenv("REPLIT_OBJSTORE_BUCKET"))
-		for _, model := range storageModels {
-			log.Printf("   - %s (cloud)", model)
-		}
-	}
-
-	// Register Local GGUF provider
+	// Register the local model server (Ollama / llama-server) if it is up.
+	// Only real providers are registered: the character never speaks from a stub.
+	// The client is registered whether or not the server answers right now, so a
+	// model server started later is picked up by the per-request availability
+	// check without restarting. The startup probe only informs the log.
 	localGGUFProvider = providers.NewLocalGGUFProvider()
+	CoreIdentity.RegisterAIProvider("local_gguf", localGGUFProvider)
+	CoreIdentity.SetPrimaryAI("local_gguf")
 	if localGGUFProvider.IsAvailable() {
-		CoreIdentity.RegisterAIProvider("local_gguf", localGGUFProvider)
-		models := localGGUFProvider.ListAvailableModels()
-		log.Printf("✅ Local GGUF provider registered with %d models:", len(models))
-		for _, model := range models {
-			log.Printf("   - %s", model)
-		}
-		// Set as primary if no other provider is available
-		CoreIdentity.SetPrimaryAI("local_gguf")
+		log.Printf("✅ Local model server reachable with %d models", len(localGGUFProvider.ListAvailableModels()))
+	} else {
+		log.Println("ℹ️  No local model server reachable yet (set LOCAL_LLM_BASE_URL, default http://localhost:11434/v1); it will be used once it answers")
 	}
 
-	// Register OpenAI provider
 	openai := providers.NewOpenAIProvider()
 	if openai.IsAvailable() {
 		CoreIdentity.RegisterAIProvider("openai", openai)
-		CoreIdentity.SetPrimaryAI("openai") // Prefer OpenAI if available
+		CoreIdentity.SetPrimaryAI("openai")
 		log.Println("✅ OpenAI provider registered and set as primary")
-	} else {
-		log.Println("⚠️  OpenAI API key not found - using local GGUF models")
+	}
+
+	if !localGGUFProvider.IsAvailable() && !openai.IsAvailable() {
+		log.Println("⚠️  No language model available — chat will return errors until a local model server or OPENAI_API_KEY is configured")
 	}
 
 	log.Println("✨ Deep Tree Echo Identity initialized and resonating")
@@ -182,7 +171,14 @@ func main() {
 		}
 
 		prompt := req["prompt"]
-		thought := CoreIdentity.Think(prompt)
+		thought, err := CoreIdentity.GenerateWithAI(context.Background(), prompt)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":    "no language model available: " + err.Error(),
+				"identity": CoreIdentity.Identity.GetStatus(),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"thought":  thought,
@@ -203,9 +199,9 @@ func main() {
 		response, err := CoreIdentity.GenerateWithAI(ctx, req.Prompt)
 
 		if err != nil {
-			// Fallback to Deep Tree Echo standalone
-			result, _ := CoreIdentity.Process(ctx, req.Prompt)
-			response = fmt.Sprintf("🌊 %v", result)
+			// No model, no reply — the reservoir summary is not the character speaking.
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no language model available: " + err.Error()})
+			return
 		}
 
 		// Get identity status for context
@@ -231,7 +227,6 @@ func main() {
 		// Extract messages
 		messagesRaw := req["messages"].([]interface{})
 		messages := []deeptreeecho.ChatMessage{}
-		lastMessage := ""
 
 		for _, msgRaw := range messagesRaw {
 			msg := msgRaw.(map[string]interface{})
@@ -242,10 +237,6 @@ func main() {
 				Role:    role,
 				Content: content,
 			})
-
-			if role == "user" {
-				lastMessage = content
-			}
 		}
 
 		// Try to chat with AI if available
@@ -253,10 +244,12 @@ func main() {
 		response, err := CoreIdentity.ChatWithAI(ctx, messages)
 
 		if err != nil {
-			// Fallback to Deep Tree Echo standalone
-			result, _ := CoreIdentity.Process(ctx, lastMessage)
-			thought := CoreIdentity.Think(lastMessage)
-			response = fmt.Sprintf("%v\n%s", result, thought)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"done":  true,
+				"echo":  CoreIdentity.Identity.GetStatus(),
+			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
@@ -310,64 +303,7 @@ func main() {
 	})
 
 	// App Storage model management
-	r.GET("/api/models/storage", func(c *gin.Context) {
-		if appStorageProvider == nil || !appStorageProvider.IsAvailable() {
-			c.JSON(http.StatusOK, gin.H{
-				"available": false,
-				"message":   "App Storage provider not available",
-			})
-			return
-		}
-
-		models, _ := appStorageProvider.ListStorageModels()
-		c.JSON(http.StatusOK, gin.H{
-			"available": true,
-			"bucket":    os.Getenv("REPLIT_OBJSTORE_BUCKET"),
-			"models":    models,
-			"loaded":    appStorageProvider.GetLoadedModel(),
-			"cached":    appStorageProvider.GetCachedModels(),
-		})
-	})
-
-	r.POST("/api/models/storage/load", func(c *gin.Context) {
-		var req map[string]string
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		modelName := req["model"]
-		if modelName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "model name required"})
-			return
-		}
-
-		// Load model from App Storage
-		if err := appStorageProvider.LoadModel(modelName); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Set app_storage as primary provider
-		CoreIdentity.SetPrimaryAI("app_storage")
-
-		c.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("Model %s loaded from App Storage", modelName),
-			"model":   modelName,
-			"info":    appStorageProvider.GetModelInfo(),
-		})
-	})
-
-	r.DELETE("/api/models/storage/cache", func(c *gin.Context) {
-		if err := appStorageProvider.ClearCache(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Model cache cleared",
-		})
-	})
+	// Model storage endpoints were removed with the simulated "App Storage" provider.
 
 	// Local GGUF model management
 	r.GET("/api/models/local", func(c *gin.Context) {

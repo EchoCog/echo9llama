@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/EchoCog/echollama/core/deeptreeecho"
+	"github.com/EchoCog/echollama/core/deeptreeecho/providers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -44,7 +45,34 @@ func init() {
 	// Initialize Deep Tree Echo as the core identity
 	log.Println("🌊 Initializing Deep Tree Echo Identity as core embodied cognition...")
 	CoreIdentity = deeptreeecho.NewEmbodiedCognition("Echollama")
+
+	// Only real providers are registered; nothing here fabricates text. The
+	// local client is registered whether or not its server answers now, so a
+	// model server started later is picked up by the per-request check.
+	registerProviders()
 	log.Println("✨ Deep Tree Echo Identity initialized and resonating")
+}
+
+func registerProviders() {
+	localGGUF := providers.NewLocalGGUFProvider()
+	CoreIdentity.RegisterAIProvider("local_gguf", localGGUF)
+	CoreIdentity.SetPrimaryAI("local_gguf")
+	if localGGUF.IsAvailable() {
+		log.Printf("✅ Local model server reachable with %d models", len(localGGUF.ListAvailableModels()))
+	} else {
+		log.Println("ℹ️  No local model server reachable yet (set LOCAL_LLM_BASE_URL, default http://localhost:11434/v1); it will be used once it answers")
+	}
+
+	openai := providers.NewOpenAIProvider()
+	if openai.IsAvailable() {
+		CoreIdentity.RegisterAIProvider("openai", openai)
+		CoreIdentity.SetPrimaryAI("openai")
+		log.Println("✅ OpenAI provider registered and set as primary")
+	}
+
+	if !localGGUF.IsAvailable() && !openai.IsAvailable() {
+		log.Println("⚠️  No language model available — chat will return errors until a local model server or OPENAI_API_KEY is configured")
+	}
 }
 
 func main() {
@@ -104,7 +132,14 @@ func main() {
 		}
 
 		prompt := req["prompt"]
-		thought := CoreIdentity.Think(prompt)
+		thought, err := CoreIdentity.GenerateWithAI(context.Background(), prompt)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":    "no language model available: " + err.Error(),
+				"identity": CoreIdentity.Identity.GetStatus(),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"thought":  thought,
@@ -179,10 +214,15 @@ func main() {
 			return
 		}
 
-		// Process through Deep Tree Echo embodied cognition
-		result, err := CoreIdentity.Process(context.Background(), req.Prompt)
+		// GenerateWithAI runs the reservoir processing itself; the text that
+		// is returned as the character's output comes only from a model.
+		ctx := context.Background()
+		generated, err := CoreIdentity.GenerateWithAI(ctx, req.Prompt)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":    "no language model available: " + err.Error(),
+				"identity": CoreIdentity.Identity.GetStatus(),
+			})
 			return
 		}
 
@@ -191,7 +231,7 @@ func main() {
 
 		response := GenerateResponse{
 			Model:    "deep-tree-echo",
-			Response: fmt.Sprintf("🌊 %v", result),
+			Response: generated,
 			Done:     true,
 			Echo:     identityStatus,
 		}
@@ -206,24 +246,37 @@ func main() {
 			return
 		}
 
-		// Extract message content
 		messages := req["messages"].([]interface{})
-		lastMessage := ""
-		if len(messages) > 0 {
-			msg := messages[len(messages)-1].(map[string]interface{})
-			lastMessage = msg["content"].(string)
+
+		// ChatWithAI runs the reservoir processing itself; the reply comes
+		// from a model.
+		ctx := context.Background()
+		chatMessages := make([]deeptreeecho.ChatMessage, 0, len(messages))
+		for _, raw := range messages {
+			m, ok := raw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			role, _ := m["role"].(string)
+			content, _ := m["content"].(string)
+			if role != "" && content != "" {
+				chatMessages = append(chatMessages, deeptreeecho.ChatMessage{Role: role, Content: content})
+			}
 		}
-
-		// Process through Deep Tree Echo
-		result, _ := CoreIdentity.Process(context.Background(), lastMessage)
-
-		// Think deeply about the message
-		thought := CoreIdentity.Think(lastMessage)
+		response, err := CoreIdentity.ChatWithAI(ctx, chatMessages)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"done":  true,
+				"echo":  CoreIdentity.Identity.GetStatus(),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": gin.H{
 				"role":    "assistant",
-				"content": fmt.Sprintf("%v\n%s", result, thought),
+				"content": response,
 			},
 			"done": true,
 			"echo": CoreIdentity.Identity.GetStatus(),

@@ -43,26 +43,24 @@ func init() {
 }
 
 func registerProviders() {
-	// App Storage provider
-	appStorage := providers.NewAppStorageProvider()
-	if appStorage.IsAvailable() {
-		DeepTree.RegisterAIProvider("app_storage", appStorage)
-		log.Printf("☁️  App Storage connected: %s", os.Getenv("REPLIT_OBJSTORE_BUCKET"))
-	}
-
-	// Local GGUF provider
+	// Only real providers are registered; nothing here fabricates text.
+	// Registered unconditionally: a model server started later is picked up by
+	// the per-request availability check. The probe only informs the log.
 	localGGUF := providers.NewLocalGGUFProvider()
+	DeepTree.RegisterAIProvider("local_gguf", localGGUF)
 	if localGGUF.IsAvailable() {
-		DeepTree.RegisterAIProvider("local_gguf", localGGUF)
-		models := localGGUF.ListAvailableModels()
-		log.Printf("📦 Local models available: %d", len(models))
+		log.Printf("📦 Local model server: %d models", len(localGGUF.ListAvailableModels()))
 	}
 
-	// OpenAI provider
 	openai := providers.NewOpenAIProvider()
 	if openai.IsAvailable() {
 		DeepTree.RegisterAIProvider("openai", openai)
+		DeepTree.SetPrimaryAI("openai")
 		log.Println("🤖 OpenAI provider connected")
+	}
+
+	if !localGGUF.IsAvailable() && !openai.IsAvailable() {
+		log.Println("⚠️  No language model available — set LOCAL_LLM_BASE_URL (Ollama/llama-server) or OPENAI_API_KEY")
 	}
 }
 
@@ -275,6 +273,11 @@ func main() {
             });
             
             const data = await response.json();
+            if (!response.ok || !data.thought) {
+                // No model answered: show the operator-facing reason and keep the input.
+                addToConsole('No model available: ' + (data.error || response.statusText));
+                return;
+            }
             addToConsole('Thought: ' + data.thought);
             document.getElementById('input').value = '';
         }
@@ -369,23 +372,22 @@ func main() {
 
 		prompt := req["prompt"]
 
-		// Process through enhanced cognition
+		// GenerateWithAI runs the reservoir processing itself; what the
+		// character *thinks* in words comes only from a model.
 		ctx := context.Background()
-		result, _ := DeepTree.Process(ctx, prompt)
-		thought := DeepTree.Think(prompt)
-
-		// Try to predict based on learned patterns
-		prediction, confidence := DeepTree.Predict(prompt)
-
-		response := gin.H{
-			"thought":    thought,
-			"processing": result,
-			"prediction": prediction,
-			"confidence": confidence,
-			"coherence":  DeepTree.Identity.Coherence,
+		thought, err := DeepTree.GenerateWithAI(ctx, prompt)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":     "no language model available: " + err.Error(),
+				"coherence": DeepTree.Identity.Coherence,
+			})
+			return
 		}
 
-		c.JSON(http.StatusOK, response)
+		c.JSON(http.StatusOK, gin.H{
+			"thought":   thought,
+			"coherence": DeepTree.Identity.Coherence,
+		})
 	})
 
 	r.POST("/api/deep/resonate", func(c *gin.Context) {
@@ -507,15 +509,17 @@ func main() {
 		prompt := req["prompt"]
 		model := req["model"]
 
-		// Process through Deep Tree Echo
+		// The response is the model's; GenerateWithAI runs the reservoir
+		// processing itself. Without a model there is no response to return
+		// and nothing to learn from.
 		ctx := context.Background()
-		result, _ := DeepTree.Process(ctx, prompt)
-
-		// Try AI generation if available
 		response, err := DeepTree.GenerateWithAI(ctx, prompt)
 		if err != nil {
-			// Use Deep Tree Echo's own generation
-			response = fmt.Sprintf("%v", result)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"model": model,
+			})
+			return
 		}
 
 		// Learn from this interaction
@@ -542,26 +546,31 @@ func main() {
 		}
 
 		messages := req["messages"].([]interface{})
-		lastMessage := ""
 
+		// Build the chat history for the model (all roles, in order).
+		chatMessages := make([]deeptreeecho.ChatMessage, 0, len(messages))
 		for _, msg := range messages {
-			m := msg.(map[string]interface{})
-			if m["role"] == "user" {
-				lastMessage = m["content"].(string)
+			m, ok := msg.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			role, _ := m["role"].(string)
+			content, _ := m["content"].(string)
+			if role != "" && content != "" {
+				chatMessages = append(chatMessages, deeptreeecho.ChatMessage{Role: role, Content: content})
 			}
 		}
 
-		// Process through Deep Tree Echo
 		ctx := context.Background()
-		DeepTree.Process(ctx, lastMessage)
-		thought := DeepTree.Think(lastMessage)
-
-		// Try to predict response
-		prediction, confidence := DeepTree.Predict(lastMessage)
-
-		response := thought
-		if confidence > 0.7 && prediction != "" {
-			response = prediction + "\n\n" + thought
+		// The reply is the model's. A replayed past response (Predict) or the
+		// reservoir summary (Think) is never presented as what the character said.
+		response, err := DeepTree.ChatWithAI(ctx, chatMessages)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "no language model available: " + err.Error(),
+				"done":  true,
+			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
@@ -569,8 +578,7 @@ func main() {
 				"role":    "assistant",
 				"content": response,
 			},
-			"done":       true,
-			"confidence": confidence,
+			"done": true,
 		})
 	})
 

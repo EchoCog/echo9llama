@@ -116,7 +116,7 @@ func (p *APLParser) ParseFile(filename string) (*PatternLanguage, error) {
 		Problem:         "Tight coupling to specific AI providers creates vendor lock-in and limits flexibility",
 		Solution:        "Create abstraction layer that standardizes interfaces across providers",
 		Structure:       "Provider interface with concrete implementations for each service",
-		Implementation:  "Provider interface with OpenAI, LocalGGUF, and AppStorage implementations",
+		Implementation:  "Provider interface with OpenAI and LocalGGUF (local model server) implementations",
 		RelatedPatterns: []int{6, 12},
 		Level:           SubsystemLevel,
 	}

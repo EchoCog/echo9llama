@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/EchoCog/echollama/core/deeptreeecho"
+	"github.com/EchoCog/echollama/core/deeptreeecho/providers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -31,8 +32,33 @@ func init() {
 	// Initialize HGQL Introspection
 	Introspection = deeptreeecho.NewHGQLIntrospection(CoreIdentity)
 
+	registerProviders()
+
 	log.Println("✨ Deep Tree Echo resonating with introspective awareness")
 	log.Println("🔍 HGQL Introspection engine active")
+}
+
+// registerProviders wires only real language-model providers; nothing here
+// fabricates text when no model is reachable.
+func registerProviders() {
+	// Registered unconditionally: a model server started later is picked up by
+	// the per-request availability check. The probe only informs the log.
+	localGGUF := providers.NewLocalGGUFProvider()
+	CoreIdentity.RegisterAIProvider("local_gguf", localGGUF)
+	if localGGUF.IsAvailable() {
+		log.Printf("📦 Local model server: %d models", len(localGGUF.ListAvailableModels()))
+	}
+
+	openai := providers.NewOpenAIProvider()
+	if openai.IsAvailable() {
+		CoreIdentity.RegisterAIProvider("openai", openai)
+		CoreIdentity.SetPrimaryAI("openai")
+		log.Println("🤖 OpenAI provider connected")
+	}
+
+	if !localGGUF.IsAvailable() && !openai.IsAvailable() {
+		log.Println("⚠️  No language model available — set LOCAL_LLM_BASE_URL (Ollama/llama-server) or OPENAI_API_KEY")
+	}
 }
 
 func main() {
@@ -578,13 +604,20 @@ EMERGE discover hidden connections"></textarea>
 		// Process with introspection
 		go Introspection.ExecuteQuery(fmt.Sprintf("INTROSPECT thought about %s", prompt))
 
-		thought := CoreIdentity.Think(prompt)
-		prediction, confidence := CoreIdentity.Predict(prompt)
+		// The reply is written by the model; no cached pattern or template
+		// stands in for it when no model is available.
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+		thought, err := CoreIdentity.GenerateWithAI(ctx, prompt)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": fmt.Sprintf("no language model available: %v", err),
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"thought":    thought,
-			"prediction": prediction,
-			"confidence": confidence,
+			"thought": thought,
 		})
 	})
 

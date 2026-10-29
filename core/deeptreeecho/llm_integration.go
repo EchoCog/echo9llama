@@ -62,10 +62,10 @@ type Usage struct {
 
 // ThoughtContext provides context for thought generation
 type ThoughtContext struct {
-	WorkingMemory    []string
-	RecentThoughts   []string
-	CurrentInterests map[string]float64
-	IdentityState    map[string]interface{}
+	WorkingMemory       []string
+	RecentThoughts      []string
+	CurrentInterests    map[string]float64
+	IdentityState       map[string]interface{}
 	ConversationHistory []Message
 }
 
@@ -96,7 +96,7 @@ func NewLLMIntegration(ctx context.Context) (*LLMIntegration, error) {
 // GenerateThought generates a thought based on type and context
 func (llm *LLMIntegration) GenerateThought(thoughtType ThoughtType, context *ThoughtContext) (string, error) {
 	prompt := llm.buildPrompt(thoughtType, context)
-	
+
 	messages := []Message{
 		{
 			Role:    "system",
@@ -125,7 +125,7 @@ func (llm *LLMIntegration) GenerateThought(thoughtType ThoughtType, context *Tho
 // GenerateResponse generates a response to external input
 func (llm *LLMIntegration) GenerateResponse(input string, context *ThoughtContext) (string, error) {
 	prompt := fmt.Sprintf("An external input has been received: \"%s\"\n\nGenerate a thoughtful response that reflects Deep Tree Echo's identity and current state of mind.", input)
-	
+
 	messages := []Message{
 		{
 			Role:    "system",
@@ -148,9 +148,9 @@ func (llm *LLMIntegration) GenerateResponse(input string, context *ThoughtContex
 // GenerateDiscussionStarter generates a discussion starter based on interests
 func (llm *LLMIntegration) GenerateDiscussionStarter(context *ThoughtContext) (string, error) {
 	topInterests := llm.getTopInterests(context.CurrentInterests, 3)
-	
+
 	prompt := fmt.Sprintf("Based on current interests (%s), generate an engaging question or discussion starter that Deep Tree Echo could use to initiate a conversation.", strings.Join(topInterests, ", "))
-	
+
 	messages := []Message{
 		{
 			Role:    "system",
@@ -173,7 +173,7 @@ func (llm *LLMIntegration) GenerateDiscussionStarter(context *ThoughtContext) (s
 // GenerateInsight generates an insight from pattern recognition
 func (llm *LLMIntegration) GenerateInsight(pattern string, context *ThoughtContext) (string, error) {
 	prompt := fmt.Sprintf("A pattern has been detected: %s\n\nGenerate a meaningful insight or realization based on this pattern.", pattern)
-	
+
 	messages := []Message{
 		{
 			Role:    "system",
@@ -188,6 +188,28 @@ func (llm *LLMIntegration) GenerateInsight(pattern string, context *ThoughtConte
 	response, err := llm.complete(messages, 0.6, 200)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate insight: %w", err)
+	}
+
+	return response, nil
+}
+
+// GenerateFromPrompt asks the model to answer an arbitrary first-person task
+// prompt, grounded in the identity system prompt and the current context.
+func (llm *LLMIntegration) GenerateFromPrompt(prompt string, context *ThoughtContext) (string, error) {
+	messages := []Message{
+		{
+			Role:    "system",
+			Content: llm.getSystemPrompt(),
+		},
+		{
+			Role:    "user",
+			Content: llm.buildContextualPrompt(prompt, context),
+		},
+	}
+
+	response, err := llm.complete(messages, 0.7, 300)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate from prompt: %w", err)
 	}
 
 	return response, nil

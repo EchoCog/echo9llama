@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -11,26 +12,26 @@ import (
 
 // SubAgent represents a specialized cognitive sub-agent spawned from the core identity
 type SubAgent struct {
-	ID              string
-	Name            string
-	Specialization  string
-	ParentIdentity  *Identity
-	LocalReservoir  *ReservoirNetwork
-	LocalMemory     *MemoryResonance
-	State           SubAgentState
-	CreatedAt       time.Time
-	LastActive      time.Time
-	TaskCount       int
-	SuccessRate     float64
+	ID             string
+	Name           string
+	Specialization string
+	ParentIdentity *Identity
+	LocalReservoir *ReservoirNetwork
+	LocalMemory    *MemoryResonance
+	State          SubAgentState
+	CreatedAt      time.Time
+	LastActive     time.Time
+	TaskCount      int
+	SuccessRate    float64
 }
 
 // SubAgentState represents the current state of a sub-agent
 type SubAgentState string
 
 const (
-	SubAgentStateActive    SubAgentState = "active"
-	SubAgentStateIdle      SubAgentState = "idle"
-	SubAgentStateSleeping  SubAgentState = "sleeping"
+	SubAgentStateActive     SubAgentState = "active"
+	SubAgentStateIdle       SubAgentState = "idle"
+	SubAgentStateSleeping   SubAgentState = "sleeping"
 	SubAgentStateTerminated SubAgentState = "terminated"
 )
 
@@ -43,6 +44,9 @@ type AgentMessage struct {
 	Priority    int
 	Timestamp   time.Time
 	RequiresAck bool
+	// TaskID correlates a task message with the result message that answers
+	// it (see DelegationReceipt.TaskID).
+	TaskID string
 }
 
 // MessageType defines types of inter-agent messages
@@ -59,14 +63,14 @@ const (
 
 // MultiAgentOrchestrator manages multiple cognitive sub-agents
 type MultiAgentOrchestrator struct {
-	mu               sync.RWMutex
-	CoreIdentity     *EmbodiedCognition
-	SubAgents        map[string]*SubAgent
-	MessageQueue     chan AgentMessage
-	CoordinationMap  map[string][]string // Maps agents to their coordination partners
+	mu                     sync.RWMutex
+	CoreIdentity           *EmbodiedCognition
+	SubAgents              map[string]*SubAgent
+	MessageQueue           chan AgentMessage
+	CoordinationMap        map[string][]string // Maps agents to their coordination partners
 	SpecializationRegistry map[string]AgentFactory
-	MaxAgents        int
-	ActiveAgents     int
+	MaxAgents              int
+	ActiveAgents           int
 }
 
 // AgentFactory creates specialized sub-agents
@@ -278,7 +282,7 @@ func (mao *MultiAgentOrchestrator) TerminateAgent(agentID string) error {
 // SendMessage sends a message to another agent
 func (mao *MultiAgentOrchestrator) SendMessage(msg AgentMessage) {
 	msg.Timestamp = time.Now()
-	
+
 	select {
 	case mao.MessageQueue <- msg:
 		// Message queued successfully
@@ -338,7 +342,7 @@ func (mao *MultiAgentOrchestrator) executeAgentTask(agent *SubAgent, msg AgentMe
 	if task, ok := msg.Content.(string); ok {
 		// Encode through agent's specialized reservoir
 		encoded := agent.ParentIdentity.encodeInput(task)
-		
+
 		// Update agent's reservoir state
 		for j := range agent.LocalReservoir.Nodes {
 			sum := 0.0
@@ -353,8 +357,24 @@ func (mao *MultiAgentOrchestrator) executeAgentTask(agent *SubAgent, msg AgentMe
 			agent.LocalReservoir.Nodes[j].Activation = agent.LocalReservoir.State[j]
 		}
 
-		// Generate result
-		result := fmt.Sprintf("[%s]: Processed task with specialization", agent.Specialization)
+		// The result is the agent's real state after processing: its
+		// reservoir activation and bookkeeping, not a sentence pretending to
+		// be an answer.
+		activation := 0.0
+		for _, v := range agent.LocalReservoir.State {
+			activation += v * v
+		}
+		if n := len(agent.LocalReservoir.State); n > 0 {
+			activation = math.Sqrt(activation / float64(n))
+		}
+		result := map[string]interface{}{
+			"task_id":        msg.TaskID,
+			"agent_id":       agent.ID,
+			"specialization": agent.Specialization,
+			"task":           task,
+			"activation":     activation,
+			"task_count":     agent.TaskCount,
+		}
 
 		// Send result back
 		mao.SendMessage(AgentMessage{
@@ -362,6 +382,7 @@ func (mao *MultiAgentOrchestrator) executeAgentTask(agent *SubAgent, msg AgentMe
 			To:      msg.From,
 			Type:    MessageTypeResult,
 			Content: result,
+			TaskID:  msg.TaskID,
 		})
 
 		// Update success rate (simplified)
@@ -389,7 +410,7 @@ func exp(x float64) float64 {
 	if x > 50 {
 		return 1e22
 	}
-	
+
 	result := 1.0
 	term := 1.0
 	for i := 1; i < 20; i++ {
@@ -404,15 +425,10 @@ func exp(x float64) float64 {
 
 // handleAgentQuery handles a query from one agent to another
 func (mao *MultiAgentOrchestrator) handleAgentQuery(agent *SubAgent, msg AgentMessage) {
-	// Simple query handling - could be extended
-	response := fmt.Sprintf("Query response from %s", agent.Name)
-	
-	mao.SendMessage(AgentMessage{
-		From:    agent.ID,
-		To:      msg.From,
-		Type:    MessageTypeResponse,
-		Content: response,
-	})
+	// A query is answered only by the agent's own model-backed processing.
+	// Without it, no response is sent — a fixed "Query response from X" is not an answer.
+	_ = agent
+	_ = msg
 }
 
 // broadcastToAgents sends a message to all active agents
@@ -455,12 +471,12 @@ func (mao *MultiAgentOrchestrator) monitorAgents() {
 		<-ticker.C
 
 		mao.mu.RLock()
-		
+
 		// Check for idle agents
 		now := time.Now()
 		for _, agent := range mao.SubAgents {
 			idleTime := now.Sub(agent.LastActive)
-			
+
 			// Put idle agents to sleep
 			if idleTime > 5*time.Minute && agent.State == SubAgentStateActive {
 				agent.State = SubAgentStateSleeping
@@ -500,18 +516,30 @@ func (mao *MultiAgentOrchestrator) GetAgentStatus() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"active_agents": mao.ActiveAgents,
-		"max_agents":    mao.MaxAgents,
-		"agents":        agents,
+		"active_agents":   mao.ActiveAgents,
+		"max_agents":      mao.MaxAgents,
+		"agents":          agents,
 		"specializations": len(mao.SpecializationRegistry),
 	}
 }
 
 // DelegateTask delegates a task to the most appropriate specialist agent
-func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string, specialization string) (string, error) {
+// DelegationReceipt is the acceptance of an asynchronous delegation. The
+// specialist's real result arrives later as an AgentMessage of type
+// MessageTypeResponse carrying the same TaskID; nothing is fabricated at
+// acceptance time, and acceptance is not an error.
+type DelegationReceipt struct {
+	TaskID         string
+	AgentID        string
+	AgentName      string
+	Specialization string
+	AcceptedAt     time.Time
+}
+
+func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string, specialization string) (*DelegationReceipt, error) {
 	// Find or spawn appropriate agent
 	var agent *SubAgent
-	
+
 	mao.mu.RLock()
 	for _, a := range mao.SubAgents {
 		if a.Specialization == specialization && a.State == SubAgentStateActive {
@@ -526,21 +554,31 @@ func (mao *MultiAgentOrchestrator) DelegateTask(ctx context.Context, task string
 		var err error
 		agent, err = mao.SpawnAgent(specialization)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
+	}
+
+	receipt := &DelegationReceipt{
+		TaskID:         fmt.Sprintf("task_%d", time.Now().UnixNano()),
+		AgentID:        agent.ID,
+		AgentName:      agent.Name,
+		Specialization: agent.Specialization,
+		AcceptedAt:     time.Now(),
 	}
 
 	// Send task message
 	mao.SendMessage(AgentMessage{
-		From:    "core",
-		To:      agent.ID,
-		Type:    MessageTypeTask,
-		Content: task,
+		From:     "core",
+		To:       agent.ID,
+		Type:     MessageTypeTask,
+		Content:  task,
 		Priority: 1,
+		TaskID:   receipt.TaskID,
 	})
 
-	// Wait for response (simplified - in production would use channels)
-	time.Sleep(100 * time.Millisecond)
-
-	return fmt.Sprintf("Task delegated to %s (%s)", agent.Name, agent.Specialization), nil
+	// Delegation is asynchronous: the specialist's real result arrives as an
+	// AgentMessage of type MessageTypeResult carrying the same TaskID. The
+	// receipt only records that the task was accepted; no result is
+	// fabricated here.
+	return receipt, nil
 }

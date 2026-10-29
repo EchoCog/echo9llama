@@ -97,42 +97,6 @@ func TestGrammar(t *testing.T) {
 	grammarJSON := `
 	root   ::= object
 	value  ::= object | array | string | number | ("true" | "false" | "null") ws
-
-
-func TestAdvancedGrammar(t *testing.T) {
-	tokenizer := modelHelper(t)
-
-	// Test grammar with lookaheads and word boundaries
-	grammarAdvanced := `
-	root ::= sentence+
-	sentence ::= word (" " word)* ("." | "!" | "?") ws
-	word ::= [a-zA-Z]+ (?![0-9]) # word followed by non-digit lookahead
-	identifier ::= \b [a-zA-Z_][a-zA-Z0-9_]* \b # word boundaries
-	ws ::= [ \t\n]*
-	`
-	
-	grammar, err := NewGrammarSampler(tokenizer, grammarAdvanced)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer grammar.Free()
-
-	// Test with quantified patterns
-	grammarQuantified := `
-	root ::= number_sequence
-	number_sequence ::= digit{1,3} ("," digit{3})* # 1-3 digits, then groups of 3
-	digit ::= [0-9]
-	`
-	
-	grammarQ, err := NewGrammarSampler(tokenizer, grammarQuantified)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer grammarQ.Free()
-
-	t.Log("Advanced grammar features test passed")
-}
-
 	object ::=
 	"{" ws (
 				string ":" ws value
@@ -208,4 +172,39 @@ func BenchmarkSample(b *testing.B) {
 			}
 		})
 	}
+}
+
+// TestAdvancedGrammar documents how the sampler treats GBNF extensions:
+// lookaheads and word boundaries are not implemented by llama.cpp's grammar
+// parser and are rejected with an error rather than silently accepted, while
+// {m,n} repetition quantifiers are part of GBNF and must be accepted.
+func TestAdvancedGrammar(t *testing.T) {
+	tokenizer := modelHelper(t)
+
+	// Lookaheads and word boundaries are not part of GBNF.
+	grammarAdvanced := `
+	root ::= sentence+
+	sentence ::= word (" " word)* ("." | "!" | "?") ws
+	word ::= [a-zA-Z]+ (?![0-9]) # word followed by non-digit lookahead
+	identifier ::= \b [a-zA-Z_][a-zA-Z0-9_]* \b # word boundaries
+	ws ::= [ \t\n]*
+	`
+
+	if grammar, err := NewGrammarSampler(tokenizer, grammarAdvanced); err == nil {
+		grammar.Free()
+		t.Fatal("expected the lookahead/word-boundary grammar to be rejected")
+	}
+
+	// {m,n} quantifiers are valid GBNF and must parse.
+	grammarQuantified := `
+	root ::= number-sequence
+	number-sequence ::= digit{1,3} ("," digit{3})* # 1-3 digits, then groups of 3
+	digit ::= [0-9]
+	`
+
+	grammarQ, err := NewGrammarSampler(tokenizer, grammarQuantified)
+	if err != nil {
+		t.Fatalf("expected the quantified grammar to be accepted: %v", err)
+	}
+	grammarQ.Free()
 }

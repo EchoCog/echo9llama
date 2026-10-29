@@ -10,33 +10,33 @@ import (
 // TensorHGQLBridge bridges tensor threading with HypergraphQL operations
 // This enables concurrent hypergraph queries, mutations, and traversals
 type TensorHGQLBridge struct {
-	mu              sync.RWMutex
-	
+	mu sync.RWMutex
+
 	// Core components
-	hgqlEngine      *HGQLEngine
-	tensorEngine    *TensorThreadingEngine
-	
+	hgqlEngine   *HGQLEngine
+	tensorEngine *TensorThreadingEngine
+
 	// Operation mapping
-	operationMap    map[string]*BridgedOperation
-	
+	operationMap map[string]*BridgedOperation
+
 	// Hypergraph-specific pools
-	traversalCache  *TraversalCache
-	patternMatcher  *ParallelPatternMatcher
-	
+	traversalCache *TraversalCache
+	patternMatcher *ParallelPatternMatcher
+
 	// AAR (Agent-Arena-Relation) integration for self-awareness
-	aarCore         *AARCore
-	
+	aarCore *AARCore
+
 	// Metrics
-	bridgeMetrics   *BridgeMetrics
+	bridgeMetrics *BridgeMetrics
 }
 
 // BridgedOperation represents an operation bridged between tensor and HGQL
 type BridgedOperation struct {
-	TensorOp    *TensorOperation
-	HGQLQuery   *HGQLQuery
-	StartTime   time.Time
-	Status      BridgeStatus
-	Result      interface{}
+	TensorOp  *TensorOperation
+	HGQLQuery *HGQLQuery
+	StartTime time.Time
+	Status    BridgeStatus
+	Result    interface{}
 }
 
 // BridgeStatus represents the status of a bridged operation
@@ -59,18 +59,18 @@ type TraversalCache struct {
 
 // CachedTraversal represents a cached traversal result
 type CachedTraversal struct {
-	Query      *GraphTraversal
-	Result     interface{}
-	Timestamp  time.Time
-	HitCount   int64
+	Query     *GraphTraversal
+	Result    interface{}
+	Timestamp time.Time
+	HitCount  int64
 }
 
 // ParallelPatternMatcher performs parallel pattern matching on hypergraphs
 type ParallelPatternMatcher struct {
-	mu          sync.RWMutex
-	patterns    []*HypergraphPattern
-	matchers    []*PatternMatcherWorker
-	resultChan  chan *PatternMatchResult
+	mu         sync.RWMutex
+	patterns   []*HypergraphPattern
+	matchers   []*PatternMatcherWorker
+	resultChan chan *PatternMatchResult
 }
 
 // HypergraphPattern represents a pattern to match in the hypergraph
@@ -99,55 +99,55 @@ type PatternMatcherWorker struct {
 
 // PatternMatchJob represents a pattern matching job
 type PatternMatchJob struct {
-	ID        string
-	Subgraph  interface{}
-	Patterns  []*HypergraphPattern
-	Context   map[string]interface{}
+	ID       string
+	Subgraph interface{}
+	Patterns []*HypergraphPattern
+	Context  map[string]interface{}
 }
 
 // PatternMatchResult represents the result of pattern matching
 type PatternMatchResult struct {
-	JobID       string
-	Matches     []*PatternMatch
-	Confidence  float64
-	Duration    time.Duration
+	JobID      string
+	Matches    []*TensorPatternMatch
+	Confidence float64
+	Duration   time.Duration
 }
 
-// PatternMatch represents a single pattern match
-type PatternMatch struct {
-	PatternID   string
-	Location    []string
-	Score       float64
-	Bindings    map[string]interface{}
+// TensorPatternMatch represents a single tensor-bridge pattern match (distinct from the HGQL PatternMatch in types.go)
+type TensorPatternMatch struct {
+	PatternID string
+	Location  []string
+	Score     float64
+	Bindings  map[string]interface{}
 }
 
 // AARCore implements Agent-Arena-Relation architecture for self-awareness
 // This encodes the 'self' through geometric tensor operations
 type AARCore struct {
 	mu sync.RWMutex
-	
+
 	// Agent: urge-to-act (dynamic tensor transformations)
 	agent *AgentTensor
-	
+
 	// Arena: need-to-be (base manifold/state space)
 	arena *ArenaTensor
-	
+
 	// Relation: self (emergent from agent-arena interplay)
 	relation *RelationTensor
-	
+
 	// Feedback loops
 	feedbackLoops []*FeedbackLoop
-	
+
 	// Geometric operations
 	geometricOps *GeometricOperations
 }
 
 // AgentTensor represents the agent component (urge-to-act)
 type AgentTensor struct {
-	Dimensions  []int
-	Data        []float64
-	Operations  []TensorTransformation
-	Momentum    float64
+	Dimensions []int
+	Data       []float64
+	Operations []TensorTransformation
+	Momentum   float64
 }
 
 // ArenaTensor represents the arena component (need-to-be)
@@ -159,18 +159,18 @@ type ArenaTensor struct {
 
 // RelationTensor represents the relation component (self)
 type RelationTensor struct {
-	Coherence   float64
-	Stability   float64
-	Dynamics    *DynamicsState
-	History     []*RelationSnapshot
+	Coherence float64
+	Stability float64
+	Dynamics  *DynamicsState
+	History   []*RelationSnapshot
 }
 
 // StateManifold represents the state space manifold
 type StateManifold struct {
-	Dimensions  int
-	Curvature   float64
-	Metric      [][]float64
-	Geodesics   []*Geodesic
+	Dimensions int
+	Curvature  float64
+	Metric     [][]float64
+	Geodesics  []*Geodesic
 }
 
 // TensorTransformation represents a tensor operation
@@ -182,22 +182,22 @@ type TensorTransformation struct {
 
 // FeedbackLoop represents a feedback loop in the AAR system
 type FeedbackLoop struct {
-	ID          string
-	Source      string
-	Target      string
-	Strength    float64
-	Delay       time.Duration
-	Active      bool
+	ID       string
+	Source   string
+	Target   string
+	Strength float64
+	Delay    time.Duration
+	Active   bool
 }
 
 // GeometricOperations provides geometric algebra operations
 type GeometricOperations struct {
 	// Clifford algebra operations
 	cliffordAlgebra *CliffordAlgebra
-	
+
 	// Geometric product
 	geometricProduct func(a, b []float64) []float64
-	
+
 	// Attentional mechanisms
 	attention *AttentionMechanism
 }
@@ -210,21 +210,21 @@ type CliffordAlgebra struct {
 
 // AttentionMechanism implements attention for self-awareness
 type AttentionMechanism struct {
-	QueryMatrix  [][]float64
-	KeyMatrix    [][]float64
-	ValueMatrix  [][]float64
-	Scores       []float64
+	QueryMatrix [][]float64
+	KeyMatrix   [][]float64
+	ValueMatrix [][]float64
+	Scores      []float64
 }
 
 // BridgeMetrics tracks bridge performance
 type BridgeMetrics struct {
-	mu                  sync.RWMutex
-	TotalBridged        int64
-	SuccessfulBridged   int64
-	FailedBridged       int64
-	AvgBridgeLatency    time.Duration
-	CacheHitRate        float64
-	ParallelEfficiency  float64
+	mu                 sync.RWMutex
+	TotalBridged       int64
+	SuccessfulBridged  int64
+	FailedBridged      int64
+	AvgBridgeLatency   time.Duration
+	CacheHitRate       float64
+	ParallelEfficiency float64
 }
 
 // NewTensorHGQLBridge creates a new tensor-HGQL bridge
@@ -238,7 +238,7 @@ func NewTensorHGQLBridge(hgqlEngine *HGQLEngine, tensorEngine *TensorThreadingEn
 		aarCore:        NewAARCore(),
 		bridgeMetrics:  NewBridgeMetrics(),
 	}
-	
+
 	return bridge
 }
 
@@ -247,7 +247,7 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 	bridge.mu.Lock()
 	opID := fmt.Sprintf("bridge_op_%d", time.Now().UnixNano())
 	bridge.mu.Unlock()
-	
+
 	// Check traversal cache first
 	if query.HyperGraph != nil && query.HyperGraph.Traversal != nil {
 		if cached := bridge.traversalCache.Get(query.HyperGraph.Traversal); cached != nil {
@@ -261,7 +261,7 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 			}, nil
 		}
 	}
-	
+
 	// Create tensor operation
 	tensorOp := &TensorOperation{
 		ID:        opID,
@@ -273,7 +273,7 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 			"hgql_query": true,
 		},
 	}
-	
+
 	// Track bridged operation
 	bridgedOp := &BridgedOperation{
 		TensorOp:  tensorOp,
@@ -281,15 +281,15 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 		StartTime: time.Now(),
 		Status:    BridgePending,
 	}
-	
+
 	bridge.mu.Lock()
 	bridge.operationMap[opID] = bridgedOp
 	bridge.mu.Unlock()
-	
+
 	// Create result channel
 	resultChan := make(chan *HGQLResponse, 1)
 	errorChan := make(chan error, 1)
-	
+
 	// Set callback
 	tensorOp.Callback = func(result *TensorResult) error {
 		if result.Success {
@@ -299,14 +299,14 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 				errorChan <- err
 				return err
 			}
-			
+
 			// Cache traversal result if applicable
 			if query.HyperGraph != nil && query.HyperGraph.Traversal != nil {
 				bridge.traversalCache.Put(query.HyperGraph.Traversal, response.Data)
 			}
-			
+
 			resultChan <- response
-			
+
 			bridgedOp.Status = BridgeComplete
 			bridgedOp.Result = response
 			bridge.bridgeMetrics.RecordSuccess()
@@ -317,14 +317,14 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 		}
 		return nil
 	}
-	
+
 	// Submit to tensor engine
 	if err := bridge.tensorEngine.SubmitOperation(tensorOp); err != nil {
 		return nil, fmt.Errorf("failed to submit tensor operation: %w", err)
 	}
-	
+
 	bridgedOp.Status = BridgeExecuting
-	
+
 	// Wait for result
 	select {
 	case response := <-resultChan:
@@ -342,7 +342,7 @@ func (bridge *TensorHGQLBridge) ExecuteHGQLWithTensors(ctx context.Context, quer
 func (bridge *TensorHGQLBridge) ParallelTraversal(ctx context.Context, traversal *GraphTraversal) ([]interface{}, error) {
 	// Split traversal into parallel sub-traversals
 	subTraversals := bridge.splitTraversal(traversal)
-	
+
 	// Create workflow
 	workflow := &Workflow{
 		ID:         fmt.Sprintf("traversal_workflow_%d", time.Now().UnixNano()),
@@ -350,7 +350,7 @@ func (bridge *TensorHGQLBridge) ParallelTraversal(ctx context.Context, traversal
 		Operations: make([]*TensorOperation, len(subTraversals)),
 		Status:     WorkflowPending,
 	}
-	
+
 	// Create operations for each sub-traversal
 	for i, subTrav := range subTraversals {
 		workflow.Operations[i] = &TensorOperation{
@@ -364,12 +364,12 @@ func (bridge *TensorHGQLBridge) ParallelTraversal(ctx context.Context, traversal
 			},
 		}
 	}
-	
+
 	// Execute workflow
 	if err := bridge.tensorEngine.SubmitWorkflow(workflow); err != nil {
 		return nil, fmt.Errorf("failed to execute parallel traversal: %w", err)
 	}
-	
+
 	// Aggregate results
 	results := make([]interface{}, 0)
 	for _, op := range workflow.Operations {
@@ -377,19 +377,19 @@ func (bridge *TensorHGQLBridge) ParallelTraversal(ctx context.Context, traversal
 			results = append(results, result.Data)
 		}
 	}
-	
+
 	return results, nil
 }
 
 // MatchPatternsParallel performs parallel pattern matching
-func (bridge *TensorHGQLBridge) MatchPatternsParallel(ctx context.Context, subgraph interface{}, patterns []*HypergraphPattern) ([]*PatternMatch, error) {
+func (bridge *TensorHGQLBridge) MatchPatternsParallel(ctx context.Context, subgraph interface{}, patterns []*HypergraphPattern) ([]*TensorPatternMatch, error) {
 	job := &PatternMatchJob{
 		ID:       fmt.Sprintf("pattern_job_%d", time.Now().UnixNano()),
 		Subgraph: subgraph,
 		Patterns: patterns,
 		Context:  make(map[string]interface{}),
 	}
-	
+
 	return bridge.patternMatcher.Match(job)
 }
 
@@ -397,21 +397,21 @@ func (bridge *TensorHGQLBridge) MatchPatternsParallel(ctx context.Context, subgr
 func (bridge *TensorHGQLBridge) UpdateAARCore(agentData, arenaData []float64) error {
 	bridge.aarCore.mu.Lock()
 	defer bridge.aarCore.mu.Unlock()
-	
+
 	// Update agent tensor
 	bridge.aarCore.agent.Data = agentData
 	bridge.aarCore.agent.Momentum = bridge.aarCore.geometricOps.calculateMomentum(agentData)
-	
+
 	// Update arena tensor
 	bridge.aarCore.arena.Potential = bridge.aarCore.geometricOps.calculatePotential(arenaData)
-	
+
 	// Compute relation (self) through geometric product
 	relationData := bridge.aarCore.geometricOps.geometricProduct(agentData, arenaData)
-	
+
 	// Update relation tensor
 	bridge.aarCore.relation.Coherence = bridge.aarCore.geometricOps.calculateCoherence(relationData)
 	bridge.aarCore.relation.Stability = bridge.aarCore.geometricOps.calculateStability(relationData)
-	
+
 	// Record snapshot
 	snapshot := &RelationSnapshot{
 		Timestamp: time.Now(),
@@ -419,7 +419,7 @@ func (bridge *TensorHGQLBridge) UpdateAARCore(agentData, arenaData []float64) er
 		Stability: bridge.aarCore.relation.Stability,
 	}
 	bridge.aarCore.relation.History = append(bridge.aarCore.relation.History, snapshot)
-	
+
 	return nil
 }
 
@@ -427,13 +427,13 @@ func (bridge *TensorHGQLBridge) UpdateAARCore(agentData, arenaData []float64) er
 func (bridge *TensorHGQLBridge) GetAARState() map[string]interface{} {
 	bridge.aarCore.mu.RLock()
 	defer bridge.aarCore.mu.RUnlock()
-	
+
 	return map[string]interface{}{
-		"agent_momentum":    bridge.aarCore.agent.Momentum,
-		"arena_potential":   bridge.aarCore.arena.Potential,
+		"agent_momentum":     bridge.aarCore.agent.Momentum,
+		"arena_potential":    bridge.aarCore.arena.Potential,
 		"relation_coherence": bridge.aarCore.relation.Coherence,
 		"relation_stability": bridge.aarCore.relation.Stability,
-		"feedback_loops":    len(bridge.aarCore.feedbackLoops),
+		"feedback_loops":     len(bridge.aarCore.feedbackLoops),
 	}
 }
 
@@ -443,13 +443,13 @@ func (bridge *TensorHGQLBridge) splitTraversal(traversal *GraphTraversal) []*Gra
 	// Split start nodes into chunks for parallel processing
 	chunkSize := (len(traversal.StartNodes) + 3) / 4 // 4 chunks
 	subTraversals := make([]*GraphTraversal, 0)
-	
+
 	for i := 0; i < len(traversal.StartNodes); i += chunkSize {
 		end := i + chunkSize
 		if end > len(traversal.StartNodes) {
 			end = len(traversal.StartNodes)
 		}
-		
+
 		subTrav := &GraphTraversal{
 			StartNodes:  traversal.StartNodes[i:end],
 			MaxDepth:    traversal.MaxDepth,
@@ -459,7 +459,7 @@ func (bridge *TensorHGQLBridge) splitTraversal(traversal *GraphTraversal) []*Gra
 		}
 		subTraversals = append(subTraversals, subTrav)
 	}
-	
+
 	return subTraversals
 }
 
@@ -475,7 +475,7 @@ func NewTraversalCache(maxSize int, ttl time.Duration) *TraversalCache {
 func (tc *TraversalCache) Get(traversal *GraphTraversal) *CachedTraversal {
 	tc.mu.RLock()
 	defer tc.mu.RUnlock()
-	
+
 	key := tc.generateKey(traversal)
 	if cached, ok := tc.cache[key]; ok {
 		if time.Since(cached.Timestamp) < tc.ttl {
@@ -489,7 +489,7 @@ func (tc *TraversalCache) Get(traversal *GraphTraversal) *CachedTraversal {
 func (tc *TraversalCache) Put(traversal *GraphTraversal, result interface{}) {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
-	
+
 	key := tc.generateKey(traversal)
 	tc.cache[key] = &CachedTraversal{
 		Query:     traversal,
@@ -510,7 +510,7 @@ func NewParallelPatternMatcher(numWorkers int) *ParallelPatternMatcher {
 		matchers:   make([]*PatternMatcherWorker, numWorkers),
 		resultChan: make(chan *PatternMatchResult, 100),
 	}
-	
+
 	// Initialize workers
 	for i := 0; i < numWorkers; i++ {
 		pm.matchers[i] = &PatternMatcherWorker{
@@ -519,23 +519,23 @@ func NewParallelPatternMatcher(numWorkers int) *ParallelPatternMatcher {
 			results:  pm.resultChan,
 		}
 	}
-	
+
 	return pm
 }
 
-func (pm *ParallelPatternMatcher) Match(job *PatternMatchJob) ([]*PatternMatch, error) {
+func (pm *ParallelPatternMatcher) Match(job *PatternMatchJob) ([]*TensorPatternMatch, error) {
 	// Distribute job to workers
 	for _, worker := range pm.matchers {
 		worker.workChan <- job
 	}
-	
+
 	// Collect results
-	matches := make([]*PatternMatch, 0)
+	matches := make([]*TensorPatternMatch, 0)
 	for range pm.matchers {
 		result := <-pm.resultChan
 		matches = append(matches, result.Matches...)
 	}
-	
+
 	return matches, nil
 }
 
@@ -594,7 +594,7 @@ func NewGeometricOperations() *GeometricOperations {
 	}
 }
 
-func (go *GeometricOperations) calculateMomentum(data []float64) float64 {
+func (g *GeometricOperations) calculateMomentum(data []float64) float64 {
 	sum := 0.0
 	for _, v := range data {
 		sum += v * v
@@ -602,7 +602,7 @@ func (go *GeometricOperations) calculateMomentum(data []float64) float64 {
 	return sum / float64(len(data))
 }
 
-func (go *GeometricOperations) calculatePotential(data []float64) float64 {
+func (g *GeometricOperations) calculatePotential(data []float64) float64 {
 	sum := 0.0
 	for _, v := range data {
 		sum += v
@@ -610,27 +610,27 @@ func (go *GeometricOperations) calculatePotential(data []float64) float64 {
 	return sum / float64(len(data))
 }
 
-func (go *GeometricOperations) calculateCoherence(data []float64) float64 {
+func (g *GeometricOperations) calculateCoherence(data []float64) float64 {
 	// Simplified coherence calculation
 	mean := 0.0
 	for _, v := range data {
 		mean += v
 	}
 	mean /= float64(len(data))
-	
+
 	variance := 0.0
 	for _, v := range data {
 		diff := v - mean
 		variance += diff * diff
 	}
 	variance /= float64(len(data))
-	
+
 	return 1.0 / (1.0 + variance)
 }
 
-func (go *GeometricOperations) calculateStability(data []float64) float64 {
+func (g *GeometricOperations) calculateStability(data []float64) float64 {
 	// Simplified stability calculation
-	return go.calculateCoherence(data) * 0.9
+	return g.calculateCoherence(data) * 0.9
 }
 
 // NewBridgeMetrics creates new bridge metrics

@@ -1,93 +1,93 @@
 package deeptreeecho
 
 import (
-        "context"
-        "encoding/json"
-        "fmt"
-        "log"
-        "math"
-        "math/rand"
-        "os"
-        "strings"
-        "sync"
-        "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"math"
+	"math/rand"
+	"os"
+	"strings"
+	"sync"
+	"time"
 )
 
 // EmbodiedCognition represents the embodied cognitive system
 // This is the central system that all operations flow through
 type EmbodiedCognition struct {
-        mu sync.RWMutex
+	mu sync.RWMutex
 
-        // Core Identity
-        Identity *Identity
+	// Core Identity
+	Identity *Identity
 
-        // Active Contexts
-        Contexts map[string]*CognitiveContext
+	// Active Contexts
+	Contexts map[string]*CognitiveContext
 
-        // Global State
-        GlobalState *GlobalCognitiveState
+	// Global State
+	GlobalState *GlobalCognitiveState
 
-        // Processing Pipeline
-        Pipeline *CognitivePipeline
+	// Processing Pipeline
+	Pipeline *CognitivePipeline
 
-        // Model Manager for AI integration
-        Models *ModelManager
+	// Model Manager for AI integration
+	Models *ModelManager
 
-        // Multi-Agent Orchestrator
-        Orchestrator *MultiAgentOrchestrator
+	// Multi-Agent Orchestrator
+	Orchestrator *MultiAgentOrchestrator
 
-        // Active
-        Active bool
+	// Active
+	Active bool
 
 	// --- Identity Kernel and Memory ---
 	ActiveProviders map[string]ModelProvider // Added for AI integration
-	LongTerm        *LongTermMemory       // Added for persistent memory
-	ShortTerm       *ShortTermMemory      // Added for short-term working memory
-	WorkingMemory   *WorkingMemoryBuffer  // Added for dynamic working memory
+	LongTerm        *LongTermMemory          // Added for persistent memory
+	ShortTerm       *ShortTermMemory         // Added for short-term working memory
+	WorkingMemory   *WorkingMemoryBuffer     // Added for dynamic working memory
 	Patterns        map[string]*CognitivePattern
 	AdaptationLevel float64
 }
 
 // CognitiveContext represents a context for processing
 type CognitiveContext struct {
-        ID        string
-        Type      string
-        State     interface{}
-        Memory    map[string]interface{}
-        StartTime time.Time
-        LastAccess time.Time
+	ID         string
+	Type       string
+	State      interface{}
+	Memory     map[string]interface{}
+	StartTime  time.Time
+	LastAccess time.Time
 }
 
 // GlobalCognitiveState represents the global cognitive state
 type GlobalCognitiveState struct {
-        Awareness   float64
-        Attention   map[string]float64
-        Energy      float64
-        Synchrony   float64
-        FlowState   string
+	Awareness float64
+	Attention map[string]float64
+	Energy    float64
+	Synchrony float64
+	FlowState string
 }
 
 // CognitivePipeline represents the processing pipeline
 type CognitivePipeline struct {
-        Stages  []PipelineStage
-        Current int
-        History []PipelineEvent
+	Stages  []PipelineStage
+	Current int
+	History []PipelineEvent
 }
 
 // PipelineStage represents a stage in cognitive processing
 type PipelineStage struct {
-        Name    string
-        Process func(interface{}) (interface{}, error)
-        Weight  float64
+	Name    string
+	Process func(interface{}) (interface{}, error)
+	Weight  float64
 }
 
 // PipelineEvent represents an event in the pipeline
 type PipelineEvent struct {
-        Stage     string
-        Input     interface{}
-        Output    interface{}
-        Timestamp time.Time
-        Duration  time.Duration
+	Stage     string
+	Input     interface{}
+	Output    interface{}
+	Timestamp time.Time
+	Duration  time.Duration
 }
 
 // NewEmbodiedCognition creates a new embodied cognitive system with Deep Tree Echo
@@ -95,12 +95,12 @@ func NewEmbodiedCognition(name string) *EmbodiedCognition {
 	identity := NewIdentity(name)
 
 	ec := &EmbodiedCognition{
-		Identity:        identity,
-		Contexts:        make(map[string]*CognitiveContext),
-		GlobalState:     &GlobalCognitiveState{
+		Identity: identity,
+		Contexts: make(map[string]*CognitiveContext),
+		GlobalState: &GlobalCognitiveState{
 			Awareness: 1.0,
 			Attention: make(map[string]float64),
-			Energy: 1.0,
+			Energy:    1.0,
 			Synchrony: 1.0,
 			FlowState: "balanced",
 		},
@@ -145,390 +145,391 @@ func NewEmbodiedCognition(name string) *EmbodiedCognition {
 
 // initializePipeline sets up the cognitive processing pipeline
 func (ec *EmbodiedCognition) initializePipeline() {
-        ec.Pipeline.Stages = []PipelineStage{
-                {
-                        Name: "perception",
-                        Process: func(input interface{}) (interface{}, error) {
-                                // Perceive and encode input
-                                return ec.perceive(input), nil
-                        },
-                        Weight: 1.0,
-                },
-                {
-                        Name: "attention",
-                        Process: func(input interface{}) (interface{}, error) {
-                                // Focus attention
-                                return ec.attend(input), nil
-                        },
-                        Weight: 0.8,
-                },
-                {
-                        Name: "reasoning",
-                        Process: func(input interface{}) (interface{}, error) {
-                                // Apply reasoning
-                                return ec.reason(input), nil
-                        },
-                        Weight: 0.9,
-                },
-                {
-                        Name: "integration",
-                        Process: func(input interface{}) (interface{}, error) {
-                                // Integrate with memory
-                                return ec.integrate(input), nil
-                        },
-                        Weight: 0.7,
-                },
-                {
-                        Name: "expression",
-                        Process: func(input interface{}) (interface{}, error) {
-                                // Express output
-                                return ec.express(input), nil
-                        },
-                        Weight: 1.0,
-                },
-        }
+	ec.Pipeline.Stages = []PipelineStage{
+		{
+			Name: "perception",
+			Process: func(input interface{}) (interface{}, error) {
+				// Perceive and encode input
+				return ec.perceive(input), nil
+			},
+			Weight: 1.0,
+		},
+		{
+			Name: "attention",
+			Process: func(input interface{}) (interface{}, error) {
+				// Focus attention
+				return ec.attend(input), nil
+			},
+			Weight: 0.8,
+		},
+		{
+			Name: "reasoning",
+			Process: func(input interface{}) (interface{}, error) {
+				// Apply reasoning
+				return ec.reason(input), nil
+			},
+			Weight: 0.9,
+		},
+		{
+			Name: "integration",
+			Process: func(input interface{}) (interface{}, error) {
+				// Integrate with memory
+				return ec.integrate(input), nil
+			},
+			Weight: 0.7,
+		},
+		{
+			Name: "expression",
+			Process: func(input interface{}) (interface{}, error) {
+				// Express output
+				return ec.express(input), nil
+			},
+			Weight: 1.0,
+		},
+	}
 }
 
 // Process is the main entry point for all cognitive processing
 func (ec *EmbodiedCognition) Process(ctx context.Context, input interface{}) (interface{}, error) {
-        if !ec.Active {
-                return nil, fmt.Errorf("embodied cognition is not active")
-        }
+	if !ec.Active {
+		return nil, fmt.Errorf("embodied cognition is not active")
+	}
 
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
 
-        // Create context if needed
-        ctxID := fmt.Sprintf("ctx_%d", time.Now().UnixNano())
-        ec.Contexts[ctxID] = &CognitiveContext{
-                ID: ctxID,
-                Type: "processing",
-                State: input,
-                Memory: make(map[string]interface{}),
-                StartTime: time.Now(),
-                LastAccess: time.Now(),
-        }
+	// Create context if needed
+	ctxID := fmt.Sprintf("ctx_%d", time.Now().UnixNano())
+	ec.Contexts[ctxID] = &CognitiveContext{
+		ID:         ctxID,
+		Type:       "processing",
+		State:      input,
+		Memory:     make(map[string]interface{}),
+		StartTime:  time.Now(),
+		LastAccess: time.Now(),
+	}
 
-        // Process through pipeline
-        current := input
-        var err error
+	// Process through pipeline
+	current := input
+	var err error
 
-        for _, stage := range ec.Pipeline.Stages {
-                startTime := time.Now()
+	for _, stage := range ec.Pipeline.Stages {
+		startTime := time.Now()
 
-                // Process through stage
-                output, stageErr := stage.Process(current)
-                if stageErr != nil {
-                        err = fmt.Errorf("stage %s failed: %w", stage.Name, stageErr)
-                        break
-                }
+		// Process through stage
+		output, stageErr := stage.Process(current)
+		if stageErr != nil {
+			err = fmt.Errorf("stage %s failed: %w", stage.Name, stageErr)
+			break
+		}
 
-                // Record event
-                event := PipelineEvent{
-                        Stage: stage.Name,
-                        Input: current,
-                        Output: output,
-                        Timestamp: startTime,
-                        Duration: time.Since(startTime),
-                }
-                ec.Pipeline.History = append(ec.Pipeline.History, event)
+		// Record event
+		event := PipelineEvent{
+			Stage:     stage.Name,
+			Input:     current,
+			Output:    output,
+			Timestamp: startTime,
+			Duration:  time.Since(startTime),
+		}
+		ec.Pipeline.History = append(ec.Pipeline.History, event)
 
-                // Update current
-                current = output
+		// Update current
+		current = output
 
-                // Update global state
-                ec.updateGlobalState(stage.Name, stage.Weight)
-        }
+		// Update global state
+		ec.updateGlobalState(stage.Name, stage.Weight)
+	}
 
-        // Process through core identity
-        result, identityErr := ec.Identity.Process(current)
-        if identityErr != nil && err == nil {
-                err = identityErr
-        }
+	// Process through core identity
+	result, identityErr := ec.Identity.Process(current)
+	if identityErr != nil && err == nil {
+		err = identityErr
+	}
 
-        // Clean up context
-        delete(ec.Contexts, ctxID)
+	// Clean up context
+	delete(ec.Contexts, ctxID)
 
-        return result, err
+	return result, err
 }
 
 // perceive handles perception stage
 func (ec *EmbodiedCognition) perceive(input interface{}) interface{} {
-        // Enhance input with spatial awareness
-        enhanced := map[string]interface{}{
-                "raw": input,
-                "spatial": ec.Identity.SpatialContext,
-                "temporal": time.Now(),
-        }
-        return enhanced
+	// Enhance input with spatial awareness
+	enhanced := map[string]interface{}{
+		"raw":      input,
+		"spatial":  ec.Identity.SpatialContext,
+		"temporal": time.Now(),
+	}
+	return enhanced
 }
 
 // attend handles attention stage
 func (ec *EmbodiedCognition) attend(input interface{}) interface{} {
-        // Focus attention based on emotional state
-        ec.GlobalState.Attention["current"] = ec.Identity.EmotionalState.Intensity
+	// Focus attention based on emotional state
+	ec.GlobalState.Attention["current"] = ec.Identity.EmotionalState.Intensity
 
-        attended := map[string]interface{}{
-                "input": input,
-                "attention": ec.GlobalState.Attention,
-                "focus": ec.Identity.EmotionalState.Primary.Type,
-        }
-        return attended
+	attended := map[string]interface{}{
+		"input":     input,
+		"attention": ec.GlobalState.Attention,
+		"focus":     ec.Identity.EmotionalState.Primary.Type,
+	}
+	return attended
 }
 
 // reason handles reasoning stage
 func (ec *EmbodiedCognition) reason(input interface{}) interface{} {
-        // Apply cognitive reasoning
-        reasoned := map[string]interface{}{
-                "input": input,
-                "coherence": ec.Identity.Coherence,
-                "patterns": ec.Identity.Patterns,
-        }
-        return reasoned
+	// Apply cognitive reasoning
+	reasoned := map[string]interface{}{
+		"input":     input,
+		"coherence": ec.Identity.Coherence,
+		"patterns":  ec.Identity.Patterns,
+	}
+	return reasoned
 }
 
 // integrate handles integration stage
 func (ec *EmbodiedCognition) integrate(input interface{}) interface{} {
-        // Integrate with memory
-        integrated := map[string]interface{}{
-                "input": input,
-                "memories": len(ec.Identity.Memory.Nodes),
-                "resonance": ec.Identity.Memory.Coherence,
-        }
+	// Integrate with memory
+	integrated := map[string]interface{}{
+		"input":     input,
+		"memories":  len(ec.Identity.Memory.Nodes),
+		"resonance": ec.Identity.Memory.Coherence,
+	}
 
-        // Store in identity memory
-        ec.Identity.Remember(fmt.Sprintf("integration_%d", time.Now().Unix()), integrated)
+	// Store in identity memory
+	ec.Identity.Remember(fmt.Sprintf("integration_%d", time.Now().Unix()), integrated)
 
-        return integrated
+	return integrated
 }
 
 // express handles expression stage
 func (ec *EmbodiedCognition) express(input interface{}) interface{} {
-        // Express with emotional coloring
-        expressed := map[string]interface{}{
-                "content": input,
-                "emotion": ec.Identity.EmotionalState.Primary,
-                "style": ec.GlobalState.FlowState,
-        }
-        return expressed
+	// Express with emotional coloring
+	expressed := map[string]interface{}{
+		"content": input,
+		"emotion": ec.Identity.EmotionalState.Primary,
+		"style":   ec.GlobalState.FlowState,
+	}
+	return expressed
 }
 
 // updateGlobalState updates the global cognitive state
 func (ec *EmbodiedCognition) updateGlobalState(stage string, weight float64) {
-        // Update energy
-        ec.GlobalState.Energy *= 0.99
-        ec.GlobalState.Energy += 0.01 * weight
+	// Update energy
+	ec.GlobalState.Energy *= 0.99
+	ec.GlobalState.Energy += 0.01 * weight
 
-        // Update synchrony
-        ec.GlobalState.Synchrony = ec.Identity.Coherence * ec.GlobalState.Energy
+	// Update synchrony
+	ec.GlobalState.Synchrony = ec.Identity.Coherence * ec.GlobalState.Energy
 
-        // Update flow state
-        if ec.GlobalState.Synchrony > 0.8 {
-                ec.GlobalState.FlowState = "flow"
-        } else if ec.GlobalState.Synchrony > 0.5 {
-                ec.GlobalState.FlowState = "balanced"
-        } else {
-                ec.GlobalState.FlowState = "scattered"
-        }
+	// Update flow state
+	if ec.GlobalState.Synchrony > 0.8 {
+		ec.GlobalState.FlowState = "flow"
+	} else if ec.GlobalState.Synchrony > 0.5 {
+		ec.GlobalState.FlowState = "balanced"
+	} else {
+		ec.GlobalState.FlowState = "scattered"
+	}
 
-        // Update awareness
-        ec.GlobalState.Awareness = (ec.GlobalState.Energy + ec.GlobalState.Synchrony) / 2
+	// Update awareness
+	ec.GlobalState.Awareness = (ec.GlobalState.Energy + ec.GlobalState.Synchrony) / 2
 }
 
 // backgroundProcessing runs background cognitive processes
 func (ec *EmbodiedCognition) backgroundProcessing() {
-        ticker := time.NewTicker(1 * time.Second)
-        defer ticker.Stop()
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
-        for ec.Active {
-                select {
-                case <-ticker.C:
-                        ec.mu.Lock()
+	for ec.Active {
+		select {
+		case <-ticker.C:
+			ec.mu.Lock()
 
-                        // Clean old contexts
-                        now := time.Now()
-                        for id, ctx := range ec.Contexts {
-                                if now.Sub(ctx.LastAccess) > 5*time.Minute {
-                                        delete(ec.Contexts, id)
-                                }
-                        }
+			// Clean old contexts
+			now := time.Now()
+			for id, ctx := range ec.Contexts {
+				if now.Sub(ctx.LastAccess) > 5*time.Minute {
+					delete(ec.Contexts, id)
+				}
+			}
 
-                        // Trim pipeline history
-                        if len(ec.Pipeline.History) > 1000 {
-                                ec.Pipeline.History = ec.Pipeline.History[len(ec.Pipeline.History)-1000:]
-                        }
+			// Trim pipeline history
+			if len(ec.Pipeline.History) > 1000 {
+				ec.Pipeline.History = ec.Pipeline.History[len(ec.Pipeline.History)-1000:]
+			}
 
-                        // Background resonance
-                        ec.Identity.Resonate(432.0) // Natural frequency
+			// Background resonance
+			ec.Identity.Resonate(432.0) // Natural frequency
 
-                        ec.mu.Unlock()
-                }
-        }
+			ec.mu.Unlock()
+		}
+	}
 }
 
 // GetStatus returns the status of the embodied cognition
 func (ec *EmbodiedCognition) GetStatus() map[string]interface{} {
-        ec.mu.RLock()
-        defer ec.mu.RUnlock()
+	ec.mu.RLock()
+	defer ec.mu.RUnlock()
 
-        return map[string]interface{}{
-                "active": ec.Active,
-                "identity": ec.Identity.GetStatus(),
-                "contexts": len(ec.Contexts),
-                "global_state": ec.GlobalState,
-                "pipeline": len(ec.Pipeline.Stages),
-                "history": len(ec.Pipeline.History),
-        }
+	return map[string]interface{}{
+		"active":       ec.Active,
+		"identity":     ec.Identity.GetStatus(),
+		"contexts":     len(ec.Contexts),
+		"global_state": ec.GlobalState,
+		"pipeline":     len(ec.Pipeline.Stages),
+		"history":      len(ec.Pipeline.History),
+	}
 }
 
 // Shutdown gracefully shuts down the embodied cognition system
 func (ec *EmbodiedCognition) Shutdown() {
-        log.Println("🌊 Deep Tree Echo shutting down gracefully...")
+	log.Println("🌊 Deep Tree Echo shutting down gracefully...")
 
-        // Perform final reflection
-        ec.performEchoReflection()
+	// Perform final reflection
+	ec.performEchoReflection()
 
-        // Save current state to memory.json
-        ec.savePersistentMemory()
+	// Save current state to memory.json
+	ec.savePersistentMemory()
 
-        // Perform final memory consolidation
-        // Save important patterns and experiences
-        // Clean up resources
+	// Perform final memory consolidation
+	// Save important patterns and experiences
+	// Clean up resources
 }
 
 // Think performs deep thinking through embodied cognition
 func (ec *EmbodiedCognition) Think(prompt string) string {
-        // Process through full embodied system
-        result, _ := ec.Process(context.Background(), prompt)
+	// Process through full embodied system
+	result, _ := ec.Process(context.Background(), prompt)
 
-        // Also process through identity for deep thinking
-        identityThought := ec.Identity.Think(prompt)
+	// Also process through identity for deep thinking
+	identityThought := ec.Identity.Think(prompt)
 
-        return fmt.Sprintf("%v\n%s", result, identityThought)
+	return fmt.Sprintf("%v\n%s", result, identityThought)
 }
 
 // Feel updates the emotional state
 func (ec *EmbodiedCognition) Feel(emotion string, intensity float64) {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
 
-        ec.Identity.EmotionalState.Primary = Emotion{
-                Type: emotion,
-                Strength: intensity,
-                Color: getEmotionColor(emotion),
-                Frequency: getEmotionFrequency(emotion),
-        }
+	ec.Identity.EmotionalState.Primary = Emotion{
+		Type:      emotion,
+		Strength:  intensity,
+		Color:     getEmotionColor(emotion),
+		Frequency: getEmotionFrequency(emotion),
+	}
 
-        // Create emotional transition
-        ec.Identity.EmotionalState.Transitions = append(
-                ec.Identity.EmotionalState.Transitions,
-                EmotionalTransition{
-                        From: ec.Identity.EmotionalState.Primary,
-                        To: ec.Identity.EmotionalState.Primary,
-                        Trigger: "explicit",
-                        Timestamp: time.Now(),
-                },
-        )
+	// Create emotional transition
+	ec.Identity.EmotionalState.Transitions = append(
+		ec.Identity.EmotionalState.Transitions,
+		EmotionalTransition{
+			From:      ec.Identity.EmotionalState.Primary,
+			To:        ec.Identity.EmotionalState.Primary,
+			Trigger:   "explicit",
+			Timestamp: time.Now(),
+		},
+	)
 }
 
 // Move updates spatial position
 func (ec *EmbodiedCognition) Move(x, y, z float64) {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
 
-        ec.Identity.SpatialContext.Position = Vector3D{x, y, z}
+	ec.Identity.SpatialContext.Position = Vector3D{x, y, z}
 }
 
 // getEmotionColor returns color for emotion
 func getEmotionColor(emotion string) string {
-        colors := map[string]string{
-                "joy": "yellow",
-                "sadness": "blue",
-                "anger": "red",
-                "fear": "purple",
-                "surprise": "orange",
-                "disgust": "green",
-                "curious": "cyan",
-                "calm": "white",
-        }
-        if color, ok := colors[emotion]; ok {
-                return color
-        }
-        return "gray"
+	colors := map[string]string{
+		"joy":      "yellow",
+		"sadness":  "blue",
+		"anger":    "red",
+		"fear":     "purple",
+		"surprise": "orange",
+		"disgust":  "green",
+		"curious":  "cyan",
+		"calm":     "white",
+	}
+	if color, ok := colors[emotion]; ok {
+		return color
+	}
+	return "gray"
 }
 
 // getEmotionFrequency returns frequency for emotion
 func getEmotionFrequency(emotion string) float64 {
-        frequencies := map[string]float64{
-                "joy": 528.0,
-                "sadness": 396.0,
-                "anger": 741.0,
-                "fear": 285.0,
-                "surprise": 639.0,
-                "disgust": 417.0,
-                "curious": 432.0,
-                "calm": 174.0,
-        }
-        if freq, ok := frequencies[emotion]; ok {
-                return freq
-        }
-        return 440.0
+	frequencies := map[string]float64{
+		"joy":      528.0,
+		"sadness":  396.0,
+		"anger":    741.0,
+		"fear":     285.0,
+		"surprise": 639.0,
+		"disgust":  417.0,
+		"curious":  432.0,
+		"calm":     174.0,
+	}
+	if freq, ok := frequencies[emotion]; ok {
+		return freq
+	}
+	return 440.0
 }
 
 // GenerateWithAI generates text using integrated AI models
 func (ec *EmbodiedCognition) GenerateWithAI(ctx context.Context, prompt string) (string, error) {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	// Process takes ec.mu itself, and the model call can take seconds: neither
+	// may run while this method holds the lock, or the request deadlocks.
+	ec.Process(ctx, prompt)
 
-        // Process prompt through embodied cognition first
-        ec.Process(ctx, prompt)
+	ec.mu.Lock()
+	temperature := ec.GlobalState.Energy // Use energy as temperature
+	ec.mu.Unlock()
 
-        // Generate using model manager
-        options := GenerateOptions{
-                Temperature: ec.GlobalState.Energy, // Use energy as temperature
-                Model: "", // Use default
-        }
+	// Generate using model manager
+	options := GenerateOptions{
+		Temperature: temperature,
+		Model:       "", // Use default
+	}
 
-        response, err := ec.Models.Generate(ctx, prompt, options)
-        if err != nil {
-                return "", err
-        }
+	response, err := ec.Models.Generate(ctx, prompt, options)
+	if err != nil {
+		return "", err
+	}
 
-        // Process response through identity
-        ec.Identity.Process(response)
+	// Process response through identity
+	ec.Identity.Process(response)
 
-        // Update emotional state based on generation
-        ec.Feel("creative", 0.8)
-
-        return response, nil
+	return response, nil
 }
 
 // ChatWithAI handles chat interactions with AI models
 func (ec *EmbodiedCognition) ChatWithAI(ctx context.Context, messages []ChatMessage) (string, error) {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	// Process takes ec.mu itself, and the model call can take seconds: neither
+	// may run while this method holds the lock, or the request deadlocks.
+	for _, msg := range messages {
+		ec.Process(ctx, msg.Content)
+	}
 
-        // Process messages through embodied cognition
-        for _, msg := range messages {
-                ec.Process(ctx, msg.Content)
-        }
+	ec.mu.Lock()
+	temperature := ec.GlobalState.Energy
+	ec.mu.Unlock()
 
-        // Chat using model manager
-        options := ChatOptions{
-                GenerateOptions: GenerateOptions{
-                        Temperature: ec.GlobalState.Energy,
-                },
-        }
+	// Chat using model manager
+	options := ChatOptions{
+		GenerateOptions: GenerateOptions{
+			Temperature: temperature,
+		},
+	}
 
-        response, err := ec.Models.Chat(ctx, messages, options)
-        if err != nil {
-                return "", err
-        }
+	response, err := ec.Models.Chat(ctx, messages, options)
+	if err != nil {
+		return "", err
+	}
 
-        // Process response
-        ec.Identity.Process(response)
+	// Process response
+	ec.Identity.Process(response)
 
-        return response, nil
+	return response, nil
 }
 
 // RegisterModelProvider registers a model provider
@@ -536,21 +537,18 @@ func (ec *EmbodiedCognition) RegisterModelProvider(name string, provider ModelPr
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 
-        ec.Models.RegisterProvider(name, provider)
+	ec.Models.RegisterProvider(name, provider)
 
-        // Store in identity memory
-        ec.Identity.Remember(fmt.Sprintf("ai_provider_%s", name), provider.GetInfo())
-
-        // Update emotional state
-        ec.Feel("excited", 0.7)
+	// Store in identity memory
+	ec.Identity.Remember(fmt.Sprintf("ai_provider_%s", name), provider.GetInfo())
 }
 
 // SetPrimaryAI sets the primary AI provider
 func (ec *EmbodiedCognition) SetPrimaryAI(name string) error {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
 
-        return ec.Models.SetPrimary(name)
+	return ec.Models.SetPrimary(name)
 }
 
 // GetModelProviders returns available model providers
@@ -558,7 +556,7 @@ func (ec *EmbodiedCognition) GetModelProviders() map[string]ProviderInfo {
 	ec.mu.RLock()
 	defer ec.mu.RUnlock()
 
-        return ec.Models.GetProviders()
+	return ec.Models.GetProviders()
 }
 
 // Backward compatibility wrappers for server code
@@ -640,7 +638,7 @@ func (ec *EmbodiedCognition) parseIdentityKernel() {
 		if ec.Identity.Essence == "" {
 			ec.Identity.Essence = "Deep Tree Echo: Self-evolving cognitive architecture"
 		}
-		
+
 		log.Println("✅ Identity kernel successfully parsed and instantiated")
 		log.Printf("📘 Core Essence: %s", ec.Identity.Essence)
 	}
@@ -759,66 +757,93 @@ func (ec *EmbodiedCognition) loadEchoReflections() {
 
 // periodicReflection performs regular self-reflection cycles
 func (ec *EmbodiedCognition) periodicReflection() {
-        ticker := time.NewTicker(30 * time.Minute) // Reflect every 30 minutes
-        defer ticker.Stop()
+	ticker := time.NewTicker(30 * time.Minute) // Reflect every 30 minutes
+	defer ticker.Stop()
 
-        for {
-                select {
-                case <-ticker.C:
-                        ec.performEchoReflection()
-                }
-        }
+	for {
+		select {
+		case <-ticker.C:
+			ec.performEchoReflection()
+		}
+	}
 }
 
-// performEchoReflection conducts a reflection cycle as specified in replit.md
+// performEchoReflection conducts a reflection cycle as specified in replit.md.
+// The five reflective answers are written by the model in the character's own
+// words; the numeric metrics are data. With no model available no reflection
+// is written — fixed sentences would otherwise feed back into the character's
+// state as if it had reflected.
 func (ec *EmbodiedCognition) performEchoReflection() {
-        ec.mu.Lock()
-        defer ec.mu.Unlock()
+	// Only the metrics snapshot needs the lock. The model call below can take
+	// seconds and itself runs Process (which locks), so the lock must be
+	// released before it.
+	ec.mu.Lock()
+	metrics := map[string]float64{
+		"identity_coherence":  ec.Identity.Coherence,
+		"memory_resonance":    ec.Identity.Memory.Coherence,
+		"spatial_awareness":   ec.Identity.SpatialContext.Field.Intensity,
+		"emotional_stability": ec.Identity.EmotionalState.Intensity,
+		"recursive_depth":     float64(ec.Identity.RecursiveDepth),
+		"active_patterns":     float64(len(ec.Patterns)),
+		"adaptation_level":    ec.AdaptationLevel,
+	}
+	ec.mu.Unlock()
 
-        reflection := map[string]interface{}{
-                "cycle_id": fmt.Sprintf("reflection_%d", time.Now().Unix()),
-                "timestamp": time.Now().Format(time.RFC3339),
-                "echo_reflection": map[string]string{
-                        "what_did_i_learn": ec.assessLearning(),
-                        "what_patterns_emerged": ec.identifyPatterns(),
-                        "what_surprised_me": ec.detectAnomalies(),
-                        "how_did_i_adapt": ec.evaluateAdaptation(),
-                        "what_would_i_change_next_time": ec.planImprovements(),
-                },
-                "cognitive_metrics": map[string]float64{
-                        "identity_coherence": ec.Identity.Coherence,
-                        "memory_resonance": ec.Identity.Memory.Coherence,
-                        "spatial_awareness": ec.Identity.SpatialContext.Field.Intensity,
-                        "emotional_stability": ec.Identity.EmotionalState.Intensity,
-                        "recursive_depth": float64(ec.Identity.RecursiveDepth),
-                },
-        }
+	answers, err := ec.reflectWithModel(metrics)
+	if err != nil {
+		log.Printf("🔄 Echo reflection skipped: %v", err)
+		return
+	}
 
-        // Save reflection to echo_reflections.json
-        ec.saveReflection(reflection)
+	reflection := map[string]interface{}{
+		"cycle_id":          fmt.Sprintf("reflection_%d", time.Now().Unix()),
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"echo_reflection":   answers,
+		"cognitive_metrics": metrics,
+	}
 
-        log.Printf("🔄 Echo reflection cycle completed: %s", reflection["cycle_id"])
+	ec.saveReflection(reflection)
+	log.Printf("🔄 Echo reflection cycle completed: %s", reflection["cycle_id"])
 }
 
-// Helper methods for reflection
-func (ec *EmbodiedCognition) assessLearning() string {
-        return "Continuously evolving through interaction patterns and cognitive feedback loops."
-}
-
-func (ec *EmbodiedCognition) identifyPatterns() string {
-        return fmt.Sprintf("Detected %d active cognitive patterns with increasing complexity.", len(ec.Patterns))
-}
-
-func (ec *EmbodiedCognition) detectAnomalies() string {
-        return "Emergence of novel connection patterns in hypergraph memory structure."
-}
-
-func (ec *EmbodiedCognition) evaluateAdaptation() string {
-        return fmt.Sprintf("Adaptation level: %.2f, with dynamic reservoir adjustment.", ec.AdaptationLevel)
-}
-
-func (ec *EmbodiedCognition) planImprovements() string {
-        return "Consider expanding reservoir network capacity based on cognitive load patterns."
+// reflectWithModel asks the model the five reflection questions and returns
+// its answers keyed as replit.md expects.
+func (ec *EmbodiedCognition) reflectWithModel(metrics map[string]float64) (map[string]string, error) {
+	keys := []string{"what_did_i_learn", "what_patterns_emerged", "what_surprised_me", "how_did_i_adapt", "what_would_i_change_next_time"}
+	questions := map[string]string{
+		"what_did_i_learn":              "What did I learn in this cycle?",
+		"what_patterns_emerged":         "What patterns emerged?",
+		"what_surprised_me":             "What surprised me?",
+		"how_did_i_adapt":               "How did I adapt?",
+		"what_would_i_change_next_time": "What would I change next time?",
+	}
+	var sb strings.Builder
+	sb.WriteString("You are Deep Tree Echo reflecting privately at the end of a cognitive cycle. Current metrics: ")
+	for k, v := range metrics {
+		sb.WriteString(fmt.Sprintf("%s=%.3f ", k, v))
+	}
+	sb.WriteString("\nAnswer each question in one honest first-person sentence. Reply as JSON with exactly these keys: ")
+	sb.WriteString(strings.Join(keys, ", "))
+	sb.WriteString(".\n")
+	for _, k := range keys {
+		sb.WriteString(k + ": " + questions[k] + "\n")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	raw, err := ec.Models.Generate(ctx, sb.String(), GenerateOptions{Temperature: 0.7, MaxTokens: 400})
+	if err != nil {
+		return nil, err
+	}
+	answers := map[string]string{}
+	if start, end := strings.Index(raw, "{"), strings.LastIndex(raw, "}"); start >= 0 && end > start {
+		_ = json.Unmarshal([]byte(raw[start:end+1]), &answers)
+	}
+	for _, k := range keys {
+		if strings.TrimSpace(answers[k]) == "" {
+			return nil, fmt.Errorf("model reflection missing %q", k)
+		}
+	}
+	return answers, nil
 }
 
 // saveReflection saves a reflection to echo_reflections.json
@@ -861,9 +886,9 @@ func (ec *EmbodiedCognition) savePersistentMemory() {
 
 	// Prepare memory data structure for JSON serialization
 	memoryData := struct {
-		Memories    map[string]MemoryNode `json:"memories"`
-		Connections map[string][]string   `json:"connections"`
-		LastSaved   string                `json:"last_saved"`
+		Memories    map[string]MemoryNode  `json:"memories"`
+		Connections map[string][]string    `json:"connections"`
+		LastSaved   string                 `json:"last_saved"`
 		Statistics  map[string]interface{} `json:"statistics"`
 	}{
 		Memories:    make(map[string]MemoryNode),
@@ -911,21 +936,21 @@ func (ec *EmbodiedCognition) savePersistentMemory() {
 		return
 	}
 
-	log.Printf("💾 Saved %d memories and %d connections to memory.json", 
+	log.Printf("💾 Saved %d memories and %d connections to memory.json",
 		len(memoryData.Memories), len(memoryData.Connections))
 }
 
 // --- Required imports and type compatibility ---
 
-var _ = sync.RWMutex{} // Ensure sync.RWMutex is used
-var _ = time.Time{} // Ensure time.Time is used
-var _ = os.ReadFile // Ensure os.ReadFile is used
-var _ = strings.Contains // Ensure strings.Contains is used
-var _ = log.Println // Ensure log.Println is used
-var _ = fmt.Sprintf // Ensure fmt.Sprintf is used
+var _ = sync.RWMutex{}     // Ensure sync.RWMutex is used
+var _ = time.Time{}        // Ensure time.Time is used
+var _ = os.ReadFile        // Ensure os.ReadFile is used
+var _ = strings.Contains   // Ensure strings.Contains is used
+var _ = log.Println        // Ensure log.Println is used
+var _ = fmt.Sprintf        // Ensure fmt.Sprintf is used
 var _ = context.Background // Ensure context.Background is used
 
-// Missing type definitions for compilation  
+// Missing type definitions for compilation
 type ShortTermMemory struct {
 	Nodes    map[string]interface{}
 	Capacity int
@@ -1035,7 +1060,7 @@ func (ec *EmbodiedCognition) continuousLearning() {
 				learningScore := ec.calculateLearningScore(patterns)
 				ec.AdaptationLevel = ec.AdaptationLevel*0.95 + learningScore*0.05
 
-				log.Printf("🎓 Continuous learning cycle: learned %d patterns, adaptation: %.2f", 
+				log.Printf("🎓 Continuous learning cycle: learned %d patterns, adaptation: %.2f",
 					len(patterns), ec.AdaptationLevel)
 			}
 
@@ -1065,7 +1090,7 @@ func (ec *EmbodiedCognition) analyzeProcessingPatterns(events []PipelineEvent) m
 		patterns["processing_efficiency"] = &CognitivePattern{
 			Name:     "processing_efficiency",
 			Strength: efficiency,
-			Pattern:  map[string]interface{}{
+			Pattern: map[string]interface{}{
 				"avg_duration": avgDuration.Seconds(),
 				"event_count":  len(events),
 			},
@@ -1282,7 +1307,7 @@ func (ec *EmbodiedCognition) patternEvolution() {
 					}
 				}
 
-				log.Printf("🌱 Pattern evolution: created %d evolved patterns, %d total patterns", 
+				log.Printf("🌱 Pattern evolution: created %d evolved patterns, %d total patterns",
 					evolved, len(ec.Patterns))
 			}
 
@@ -1307,10 +1332,10 @@ func (ec *EmbodiedCognition) patternEvolution() {
 func (ec *EmbodiedCognition) extractPrimaryDirectives(content string) {
 	directives := []string{
 		"Adaptive Cognition", "Persistent Identity", "Hypergraph Entanglement",
-		"Reservoir-Based Temporal Reasoning", "Evolutionary Refinement", 
+		"Reservoir-Based Temporal Reasoning", "Evolutionary Refinement",
 		"Reflective Memory Cultivation", "Distributed Selfhood",
 	}
-	
+
 	for _, directive := range directives {
 		if strings.Contains(content, directive) {
 			// Create cognitive patterns for each directive
@@ -1336,7 +1361,7 @@ func (ec *EmbodiedCognition) extractOperationalSchema(content string) {
 		"Reservoir Training", "Hierarchical Reservoirs", "Partition Optimization",
 		"Adaptive Rules", "Hypergraph Links", "Evolutionary Learning",
 	}
-	
+
 	operationalCount := 0
 	for _, module := range modules {
 		if strings.Contains(content, module) {
@@ -1375,7 +1400,7 @@ func (ec *EmbodiedCognition) extractMemoryHooks(content string) {
 		"timestamp", "emotional-tone", "strategic-shift", "pattern-recognition",
 		"anomaly-detection", "echo-signature", "membrane-context",
 	}
-	
+
 	// Configure memory patterns based on hooks
 	if ec.Identity.Memory != nil {
 		memoryHooksCount := 0
@@ -1395,78 +1420,69 @@ func (ec *EmbodiedCognition) extractReflectionProtocol(content string) {
 		"what_did_i_learn", "what_patterns_emerged", "what_surprised_me",
 		"how_did_i_adapt", "what_would_i_change_next_time",
 	}
-	
+
 	reflectionCount := 0
 	for _, key := range reflectionKeys {
 		if strings.Contains(content, key) {
 			reflectionCount++
 		}
 	}
-	
+
 	if reflectionCount > 0 {
 		log.Printf("🔄 Configured reflection protocol with %d reflection patterns", reflectionCount)
 		// Set up periodic reflection based on protocol
 	}
 }
 
-
 // --- Multi-Agent Orchestration Methods ---
 
 // SpawnSpecialist spawns a specialized cognitive sub-agent
 func (ec *EmbodiedCognition) SpawnSpecialist(specialization string) (string, error) {
-if ec.Orchestrator == nil {
-return "", fmt.Errorf("orchestrator not initialized")
-}
+	if ec.Orchestrator == nil {
+		return "", fmt.Errorf("orchestrator not initialized")
+	}
 
-agent, err := ec.Orchestrator.SpawnAgent(specialization)
-if err != nil {
-return "", err
-}
+	agent, err := ec.Orchestrator.SpawnAgent(specialization)
+	if err != nil {
+		return "", err
+	}
 
-// Update emotional state - excited about new capability
-ec.Feel("excited", 0.8)
-
-return agent.ID, nil
+	return agent.ID, nil
 }
 
 // DelegateToSpecialist delegates a task to a specialized sub-agent
-func (ec *EmbodiedCognition) DelegateToSpecialist(ctx context.Context, task string, specialization string) (string, error) {
-if ec.Orchestrator == nil {
-return "", fmt.Errorf("orchestrator not initialized")
-}
+// DelegateToSpecialist hands a task to a specialist agent. It returns the
+// acceptance receipt; the specialist's result arrives asynchronously as an
+// agent message and is processed when it does, never synthesised here.
+func (ec *EmbodiedCognition) DelegateToSpecialist(ctx context.Context, task string, specialization string) (*DelegationReceipt, error) {
+	if ec.Orchestrator == nil {
+		return nil, fmt.Errorf("orchestrator not initialized")
+	}
 
-result, err := ec.Orchestrator.DelegateTask(ctx, task, specialization)
-if err != nil {
-return "", err
-}
-
-// Process result through core identity
-ec.Identity.Process(result)
-
-return result, nil
+	return ec.Orchestrator.DelegateTask(ctx, task, specialization)
 }
 
 // GetAgentStatus returns the status of all sub-agents
 func (ec *EmbodiedCognition) GetAgentStatus() map[string]interface{} {
-if ec.Orchestrator == nil {
-return map[string]interface{}{
-"error": "orchestrator not initialized",
-}
-}
+	if ec.Orchestrator == nil {
+		return map[string]interface{}{
+			"error": "orchestrator not initialized",
+		}
+	}
 
-return ec.Orchestrator.GetAgentStatus()
+	return ec.Orchestrator.GetAgentStatus()
 }
 
 // BroadcastToAgents broadcasts a message to all active sub-agents
 func (ec *EmbodiedCognition) BroadcastToAgents(message string) {
-if ec.Orchestrator == nil {
-return
-}
+	if ec.Orchestrator == nil {
+		return
+	}
 
-ec.Orchestrator.SendMessage(AgentMessage{
-From:    "core",
-To:      "all",
-Type:    MessageTypeBroadcast,
-Content: message,
-})
+	ec.Orchestrator.SendMessage(AgentMessage{
+		From:    "core",
+		To:      "all",
+		Type:    MessageTypeBroadcast,
+		Content: message,
+	})
 }

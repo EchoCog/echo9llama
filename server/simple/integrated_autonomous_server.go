@@ -1,5 +1,5 @@
-//go:build simple
-// +build simple
+//go:build simple && integrated
+// +build simple,integrated
 
 package main
 
