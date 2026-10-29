@@ -46,9 +46,9 @@ type StepConfig struct {
 type CouplingType int
 
 const (
-	PerceptionMemory   CouplingType = iota // T4E ↔ T7R
-	AssessmentPlanning                     // T1R ↔ T2E
-	BalancedIntegration                    // T8E
+	PerceptionMemory    CouplingType = iota // T4E ↔ T7R
+	AssessmentPlanning                      // T1R ↔ T2E
+	BalancedIntegration                     // T8E
 )
 
 // Coupling represents a tensional coupling between cognitive streams
@@ -87,9 +87,6 @@ type PhaseProcessor interface {
 // CognitivePhase represents one of three concurrent phases
 type CognitivePhase struct {
 	id              int
-	currentTerm     Term
-	currentMode     Mode
-	stepInCycle     int
 	processor       PhaseProcessor
 	outputStream    chan *CognitiveStream
 	running         bool
@@ -126,14 +123,14 @@ type ThreePhaseManager struct {
 
 // SystemMetrics tracks overall system metrics
 type SystemMetrics struct {
-	TotalSteps       int
-	CurrentStep      int
-	CycleNumber      int
-	ActiveCouplings  []Coupling
-	CognitiveLoad    float64
-	StreamCoherence  float64
-	PhaseMetrics     [3]PhaseMetrics
-	StartTime        time.Time
+	TotalSteps      int
+	CurrentStep     int
+	CycleNumber     int
+	ActiveCouplings []Coupling
+	CognitiveLoad   float64
+	StreamCoherence float64
+	PhaseMetrics    [3]PhaseMetrics
+	StartTime       time.Time
 }
 
 // ConsciousnessIntegrator interface for integrating cognitive streams
@@ -155,7 +152,7 @@ func NewThreePhaseManager(processor PhaseProcessor, integrator ConsciousnessInte
 	}
 
 	// Initialize 3 phases
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		tpm.phases[i] = &CognitivePhase{
 			id:           i,
 			processor:    processor,
@@ -223,7 +220,7 @@ func (tpm *ThreePhaseManager) Start() error {
 	log.Println("🎵 EchoBeats 3-Phase: Starting concurrent cognitive loops...")
 
 	// Start each phase in its own goroutine
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		go tpm.runPhase(i)
 	}
 

@@ -202,7 +202,7 @@ func (mao *MultiAgentOrchestrator) createSpecializedReservoir(size int, sparsity
 	}
 
 	// Initialize nodes with specialized characteristics
-	for j := 0; j < size; j++ {
+	for j := range size {
 		reservoir.Nodes[j] = ReservoirNode{
 			ID:         j,
 			Activation: 0,
@@ -213,7 +213,7 @@ func (mao *MultiAgentOrchestrator) createSpecializedReservoir(size int, sparsity
 
 		// Create specialized connection pattern
 		reservoir.Connections[j] = make([]float64, size)
-		for k := 0; k < size; k++ {
+		for k := range size {
 			if rand.Float64() < sparsity {
 				reservoir.Connections[j][k] = (rand.Float64() - 0.5) * 2.0
 			}

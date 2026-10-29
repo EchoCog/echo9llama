@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -407,7 +406,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{
 			"frequency": frequency,
 			"resonance": DeepTree.Identity.SpatialContext.Field.Resonance,
-			"harmony":   DeepTree.Identity.SpatialContext.Field.Harmony,
+			"intensity": DeepTree.Identity.SpatialContext.Field.Intensity,
 		})
 	})
 

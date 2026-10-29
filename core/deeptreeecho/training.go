@@ -28,24 +28,24 @@ type TrainingExample struct {
 
 // ExperienceReplay manages experience replay for continuous learning
 type ExperienceReplay struct {
-	mu              sync.RWMutex
-	Buffer          []LearningExperience
-	MaxSize         int
-	PriorityAlpha   float64 // Priority exponent for importance sampling
-	BetaSchedule    []float64 // Importance sampling correction schedule
-	CurrentBeta     float64
+	mu            sync.RWMutex
+	Buffer        []LearningExperience
+	MaxSize       int
+	PriorityAlpha float64   // Priority exponent for importance sampling
+	BetaSchedule  []float64 // Importance sampling correction schedule
+	CurrentBeta   float64
 }
 
 // LearningExperience represents a stored experience for replay
 type LearningExperience struct {
-	State      []float64
-	Action     interface{}
-	Reward     float64
-	NextState  []float64
-	Done       bool
-	Priority   float64
-	Timestamp  int64
-	Metadata   map[string]interface{}
+	State     []float64
+	Action    interface{}
+	Reward    float64
+	NextState []float64
+	Done      bool
+	Priority  float64
+	Timestamp int64
+	Metadata  map[string]interface{}
 }
 
 // NewReservoirTrainer creates a new reservoir trainer
@@ -101,7 +101,7 @@ func (rt *ReservoirTrainer) Train() error {
 	for i, example := range rt.TrainingData {
 		// Process input through reservoir
 		rt.Identity.mu.Lock()
-		
+
 		// Feed input to reservoir
 		for j := range rt.Identity.Reservoir.Nodes {
 			sum := 0.0
@@ -162,9 +162,9 @@ func (rt *ReservoirTrainer) Train() error {
 	// Solve R * W = P using simple Gaussian elimination
 	// W = R^-1 * P
 	// For simplicity, we'll use a direct approach
-	
+
 	log.Printf("✅ Reservoir training completed")
-	
+
 	return nil
 }
 
@@ -205,7 +205,7 @@ func (rt *ReservoirTrainer) TrainOnline(input, target []float64) error {
 	for i := range target {
 		if i < len(output) {
 			error := target[i] - output[i]
-			
+
 			// Update node biases using error
 			for j := range rt.Identity.Reservoir.Nodes {
 				if j < len(rt.Identity.Reservoir.State) {
@@ -282,7 +282,7 @@ func (er *ExperienceReplay) SampleBatch(batchSize int) ([]LearningExperience, []
 	weights := make([]float64, 0, batchSize)
 
 	// Sample with replacement
-	for i := 0; i < batchSize; i++ {
+	for range batchSize {
 		// Sample index based on probabilities
 		idx := er.sampleIndex(probs)
 		samples = append(samples, er.Buffer[idx])
@@ -290,7 +290,7 @@ func (er *ExperienceReplay) SampleBatch(batchSize int) ([]LearningExperience, []
 
 		// Compute importance sampling weight
 		N := float64(len(er.Buffer))
-		weight := math.Pow(N * probs[idx], -er.CurrentBeta)
+		weight := math.Pow(N*probs[idx], -er.CurrentBeta)
 		weights = append(weights, weight)
 	}
 
@@ -354,7 +354,7 @@ func (er *ExperienceReplay) Clear() {
 func (rt *ReservoirTrainer) TrainFromExperience(replay *ExperienceReplay, batchSize int) error {
 	// Sample batch
 	experiences, indices, weights := replay.SampleBatch(batchSize)
-	
+
 	if len(experiences) == 0 {
 		return fmt.Errorf("no experiences to train on")
 	}
@@ -363,17 +363,17 @@ func (rt *ReservoirTrainer) TrainFromExperience(replay *ExperienceReplay, batchS
 
 	// Train on each experience with importance weighting
 	tdErrors := make([]float64, len(experiences))
-	
+
 	for i, exp := range experiences {
 		// Convert experience to training format
 		input := exp.State
 		target := exp.NextState
-		
+
 		// Weighted online training
 		weightedLR := rt.LearningRate * weights[i]
 		originalLR := rt.LearningRate
 		rt.LearningRate = weightedLR
-		
+
 		err := rt.TrainOnline(input, target)
 		if err != nil {
 			log.Printf("⚠️  Error training on experience: %v", err)
@@ -382,7 +382,7 @@ func (rt *ReservoirTrainer) TrainFromExperience(replay *ExperienceReplay, batchS
 			// Compute TD error as reward + gamma * V(s') - V(s)
 			tdErrors[i] = exp.Reward
 		}
-		
+
 		rt.LearningRate = originalLR
 	}
 
@@ -390,7 +390,7 @@ func (rt *ReservoirTrainer) TrainFromExperience(replay *ExperienceReplay, batchS
 	replay.UpdatePriorities(indices, tdErrors)
 
 	log.Printf("✅ Experience replay training completed")
-	
+
 	return nil
 }
 
@@ -412,7 +412,7 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 	}
 
 	population := make([]Individual, populationSize)
-	
+
 	// Initialize population
 	for i := range population {
 		size := len(rt.Identity.Reservoir.Connections)
@@ -420,7 +420,7 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 		for j := range connections {
 			connections[j] = make([]float64, size)
 			copy(connections[j], rt.Identity.Reservoir.Connections[j])
-			
+
 			// Add random variation
 			for k := range connections[j] {
 				if connections[j][k] != 0 {
@@ -437,7 +437,7 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 	}
 
 	// Evolve
-	for gen := 0; gen < generations; gen++ {
+	for gen := range generations {
 		// Evaluate fitness
 		for i := range population {
 			fitness := rt.evaluateFitness(population[i].Connections)
@@ -445,8 +445,8 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 		}
 
 		// Sort by fitness
-		for i := 0; i < len(population)-1; i++ {
-			for j := 0; j < len(population)-i-1; j++ {
+		for i := range len(population) - 1 {
+			for j := range len(population) - i - 1 {
 				if population[j].Fitness < population[j+1].Fitness {
 					population[j], population[j+1] = population[j+1], population[j]
 				}
@@ -455,12 +455,12 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 
 		// Keep top 50%
 		survivors := populationSize / 2
-		
+
 		// Breed new individuals
 		for i := survivors; i < populationSize; i++ {
 			parent1 := population[rand.Intn(survivors)]
 			parent2 := population[rand.Intn(survivors)]
-			
+
 			// Crossover
 			size := len(parent1.Connections)
 			offspring := Individual{Connections: make([][]float64, size)}
@@ -472,7 +472,7 @@ func (rt *ReservoirTrainer) EvolutionaryTraining(populationSize int, generations
 					} else {
 						offspring.Connections[j][k] = parent2.Connections[j][k]
 					}
-					
+
 					// Mutation
 					if rand.Float64() < 0.1 {
 						offspring.Connections[j][k] += (rand.Float64() - 0.5) * 0.1

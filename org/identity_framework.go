@@ -891,7 +891,7 @@ func (oif *OrganizationalIdentityFramework) storeReflection(reflection map[strin
 	}
 
 	if data, err := json.MarshalIndent(reflections, "", "  "); err == nil {
-		os.WriteFile(filePath, data, 0644)
+		os.WriteFile(filePath, data, 0o644)
 	}
 }
 
@@ -988,7 +988,7 @@ func (oif *OrganizationalIdentityFramework) SaveFramework() error {
 		return err
 	}
 
-	return os.WriteFile("org/identity_framework_state.json", data, 0644)
+	return os.WriteFile("org/identity_framework_state.json", data, 0o644)
 }
 
 // LoadFramework loads framework state from disk

@@ -143,52 +143,6 @@ func NewEmbodiedCognition(name string) *EmbodiedCognition {
 	return ec
 }
 
-// initializePipeline sets up the cognitive processing pipeline
-func (ec *EmbodiedCognition) initializePipeline() {
-	ec.Pipeline.Stages = []PipelineStage{
-		{
-			Name: "perception",
-			Process: func(input interface{}) (interface{}, error) {
-				// Perceive and encode input
-				return ec.perceive(input), nil
-			},
-			Weight: 1.0,
-		},
-		{
-			Name: "attention",
-			Process: func(input interface{}) (interface{}, error) {
-				// Focus attention
-				return ec.attend(input), nil
-			},
-			Weight: 0.8,
-		},
-		{
-			Name: "reasoning",
-			Process: func(input interface{}) (interface{}, error) {
-				// Apply reasoning
-				return ec.reason(input), nil
-			},
-			Weight: 0.9,
-		},
-		{
-			Name: "integration",
-			Process: func(input interface{}) (interface{}, error) {
-				// Integrate with memory
-				return ec.integrate(input), nil
-			},
-			Weight: 0.7,
-		},
-		{
-			Name: "expression",
-			Process: func(input interface{}) (interface{}, error) {
-				// Express output
-				return ec.express(input), nil
-			},
-			Weight: 1.0,
-		},
-	}
-}
-
 // Process is the main entry point for all cognitive processing
 func (ec *EmbodiedCognition) Process(ctx context.Context, input interface{}) (interface{}, error) {
 	if !ec.Active {
@@ -252,67 +206,6 @@ func (ec *EmbodiedCognition) Process(ctx context.Context, input interface{}) (in
 	return result, err
 }
 
-// perceive handles perception stage
-func (ec *EmbodiedCognition) perceive(input interface{}) interface{} {
-	// Enhance input with spatial awareness
-	enhanced := map[string]interface{}{
-		"raw":      input,
-		"spatial":  ec.Identity.SpatialContext,
-		"temporal": time.Now(),
-	}
-	return enhanced
-}
-
-// attend handles attention stage
-func (ec *EmbodiedCognition) attend(input interface{}) interface{} {
-	// Focus attention based on emotional state
-	ec.GlobalState.Attention["current"] = ec.Identity.EmotionalState.Intensity
-
-	attended := map[string]interface{}{
-		"input":     input,
-		"attention": ec.GlobalState.Attention,
-		"focus":     ec.Identity.EmotionalState.Primary.Type,
-	}
-	return attended
-}
-
-// reason handles reasoning stage
-func (ec *EmbodiedCognition) reason(input interface{}) interface{} {
-	// Apply cognitive reasoning
-	reasoned := map[string]interface{}{
-		"input":     input,
-		"coherence": ec.Identity.Coherence,
-		"patterns":  ec.Identity.Patterns,
-	}
-	return reasoned
-}
-
-// integrate handles integration stage
-func (ec *EmbodiedCognition) integrate(input interface{}) interface{} {
-	// Integrate with memory
-	integrated := map[string]interface{}{
-		"input":     input,
-		"memories":  len(ec.Identity.Memory.Nodes),
-		"resonance": ec.Identity.Memory.Coherence,
-	}
-
-	// Store in identity memory
-	ec.Identity.Remember(fmt.Sprintf("integration_%d", time.Now().Unix()), integrated)
-
-	return integrated
-}
-
-// express handles expression stage
-func (ec *EmbodiedCognition) express(input interface{}) interface{} {
-	// Express with emotional coloring
-	expressed := map[string]interface{}{
-		"content": input,
-		"emotion": ec.Identity.EmotionalState.Primary,
-		"style":   ec.GlobalState.FlowState,
-	}
-	return expressed
-}
-
 // updateGlobalState updates the global cognitive state
 func (ec *EmbodiedCognition) updateGlobalState(stage string, weight float64) {
 	// Update energy
@@ -333,37 +226,6 @@ func (ec *EmbodiedCognition) updateGlobalState(stage string, weight float64) {
 
 	// Update awareness
 	ec.GlobalState.Awareness = (ec.GlobalState.Energy + ec.GlobalState.Synchrony) / 2
-}
-
-// backgroundProcessing runs background cognitive processes
-func (ec *EmbodiedCognition) backgroundProcessing() {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for ec.Active {
-		select {
-		case <-ticker.C:
-			ec.mu.Lock()
-
-			// Clean old contexts
-			now := time.Now()
-			for id, ctx := range ec.Contexts {
-				if now.Sub(ctx.LastAccess) > 5*time.Minute {
-					delete(ec.Contexts, id)
-				}
-			}
-
-			// Trim pipeline history
-			if len(ec.Pipeline.History) > 1000 {
-				ec.Pipeline.History = ec.Pipeline.History[len(ec.Pipeline.History)-1000:]
-			}
-
-			// Background resonance
-			ec.Identity.Resonate(432.0) // Natural frequency
-
-			ec.mu.Unlock()
-		}
-	}
 }
 
 // GetStatus returns the status of the embodied cognition
@@ -760,11 +622,8 @@ func (ec *EmbodiedCognition) periodicReflection() {
 	ticker := time.NewTicker(30 * time.Minute) // Reflect every 30 minutes
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			ec.performEchoReflection()
-		}
+	for range ticker.C {
+		ec.performEchoReflection()
 	}
 }
 
@@ -871,7 +730,7 @@ func (ec *EmbodiedCognition) saveReflection(reflection map[string]interface{}) {
 		return
 	}
 
-	if err := os.WriteFile("echo_reflections.json", jsonData, 0644); err != nil {
+	if err := os.WriteFile("echo_reflections.json", jsonData, 0o644); err != nil {
 		log.Printf("⚠️  Error saving echo_reflections.json: %v", err)
 		return
 	}
@@ -931,7 +790,7 @@ func (ec *EmbodiedCognition) savePersistentMemory() {
 	}
 
 	// Write to file
-	if err := os.WriteFile("memory.json", jsonData, 0644); err != nil {
+	if err := os.WriteFile("memory.json", jsonData, 0o644); err != nil {
 		log.Printf("⚠️  Error saving memory.json: %v", err)
 		return
 	}
@@ -942,13 +801,15 @@ func (ec *EmbodiedCognition) savePersistentMemory() {
 
 // --- Required imports and type compatibility ---
 
-var _ = sync.RWMutex{}     // Ensure sync.RWMutex is used
-var _ = time.Time{}        // Ensure time.Time is used
-var _ = os.ReadFile        // Ensure os.ReadFile is used
-var _ = strings.Contains   // Ensure strings.Contains is used
-var _ = log.Println        // Ensure log.Println is used
-var _ = fmt.Sprintf        // Ensure fmt.Sprintf is used
-var _ = context.Background // Ensure context.Background is used
+var (
+	_ = sync.RWMutex{}     // Ensure sync.RWMutex is used
+	_ = time.Time{}        // Ensure time.Time is used
+	_ = os.ReadFile        // Ensure os.ReadFile is used
+	_ = strings.Contains   // Ensure strings.Contains is used
+	_ = log.Println        // Ensure log.Println is used
+	_ = fmt.Sprintf        // Ensure fmt.Sprintf is used
+	_ = context.Background // Ensure context.Background is used
+)
 
 // Missing type definitions for compilation
 type ShortTermMemory struct {
@@ -1029,43 +890,40 @@ func (ec *EmbodiedCognition) continuousLearning() {
 	ticker := time.NewTicker(5 * time.Minute) // Learn every 5 minutes
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ec.Active {
-				return
-			}
-
-			ec.mu.Lock()
-
-			// Analyze recent pipeline history for learning opportunities
-			if len(ec.Pipeline.History) > 10 {
-				recentEvents := ec.Pipeline.History[len(ec.Pipeline.History)-10:]
-
-				// Extract patterns from recent processing
-				patterns := ec.analyzeProcessingPatterns(recentEvents)
-
-				// Update cognitive patterns based on learning
-				for patternID, pattern := range patterns {
-					if existing, exists := ec.Patterns[patternID]; exists {
-						// Reinforce existing pattern
-						existing.Strength = existing.Strength*0.9 + pattern.Strength*0.1
-					} else {
-						// Add new learned pattern
-						ec.Patterns[patternID] = pattern
-					}
-				}
-
-				// Update adaptation level based on learning success
-				learningScore := ec.calculateLearningScore(patterns)
-				ec.AdaptationLevel = ec.AdaptationLevel*0.95 + learningScore*0.05
-
-				log.Printf("🎓 Continuous learning cycle: learned %d patterns, adaptation: %.2f",
-					len(patterns), ec.AdaptationLevel)
-			}
-
-			ec.mu.Unlock()
+	for range ticker.C {
+		if !ec.Active {
+			return
 		}
+
+		ec.mu.Lock()
+
+		// Analyze recent pipeline history for learning opportunities
+		if len(ec.Pipeline.History) > 10 {
+			recentEvents := ec.Pipeline.History[len(ec.Pipeline.History)-10:]
+
+			// Extract patterns from recent processing
+			patterns := ec.analyzeProcessingPatterns(recentEvents)
+
+			// Update cognitive patterns based on learning
+			for patternID, pattern := range patterns {
+				if existing, exists := ec.Patterns[patternID]; exists {
+					// Reinforce existing pattern
+					existing.Strength = existing.Strength*0.9 + pattern.Strength*0.1
+				} else {
+					// Add new learned pattern
+					ec.Patterns[patternID] = pattern
+				}
+			}
+
+			// Update adaptation level based on learning success
+			learningScore := ec.calculateLearningScore(patterns)
+			ec.AdaptationLevel = ec.AdaptationLevel*0.95 + learningScore*0.05
+
+			log.Printf("🎓 Continuous learning cycle: learned %d patterns, adaptation: %.2f",
+				len(patterns), ec.AdaptationLevel)
+		}
+
+		ec.mu.Unlock()
 	}
 }
 
@@ -1099,7 +957,7 @@ func (ec *EmbodiedCognition) analyzeProcessingPatterns(events []PipelineEvent) m
 
 	// Analyze stage transition patterns
 	stageSequence := make(map[string]int)
-	for i := 0; i < len(events)-1; i++ {
+	for i := range len(events) - 1 {
 		transition := fmt.Sprintf("%s->%s", events[i].Stage, events[i+1].Stage)
 		stageSequence[transition]++
 	}
@@ -1134,85 +992,82 @@ func (ec *EmbodiedCognition) memoryConsolidation() {
 	ticker := time.NewTicker(10 * time.Minute) // Consolidate every 10 minutes
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ec.Active {
-				return
-			}
-
-			ec.mu.Lock()
-
-			// Consolidate memories by importance and recency
-			if len(ec.Identity.Memory.Nodes) > 100 {
-				// Calculate importance scores for all memories
-				importanceScores := make(map[string]float64)
-
-				for nodeID, node := range ec.Identity.Memory.Nodes {
-					// Base score on strength and resonance
-					score := node.Strength * node.Resonance
-
-					// Decay based on age
-					age := time.Since(node.Timestamp).Hours()
-					decayFactor := math.Exp(-age / 168.0) // Week-based decay
-					score *= decayFactor
-
-					// Boost for connected nodes
-					connectionBoost := 0.0
-					for _, edge := range ec.Identity.Memory.Edges {
-						if edge.From == nodeID || edge.To == nodeID {
-							connectionBoost += edge.Weight * 0.1
-						}
-					}
-					score += connectionBoost
-
-					importanceScores[nodeID] = score
-				}
-
-				// Prune lowest importance memories if over capacity
-				if len(ec.Identity.Memory.Nodes) > 1000 {
-					// Sort by importance
-					type memoryScore struct {
-						id    string
-						score float64
-					}
-					scores := make([]memoryScore, 0, len(importanceScores))
-					for id, score := range importanceScores {
-						scores = append(scores, memoryScore{id, score})
-					}
-
-					// Simple selection sort to find bottom 10%
-					pruneCount := len(scores) / 10
-					for i := 0; i < pruneCount && i < len(scores); i++ {
-						minIdx := i
-						for j := i + 1; j < len(scores); j++ {
-							if scores[j].score < scores[minIdx].score {
-								minIdx = j
-							}
-						}
-						if minIdx != i {
-							scores[i], scores[minIdx] = scores[minIdx], scores[i]
-						}
-
-						// Prune this memory
-						delete(ec.Identity.Memory.Nodes, scores[i].id)
-					}
-
-					log.Printf("🧹 Memory consolidation: pruned %d low-importance memories", pruneCount)
-				}
-
-				// Update memory coherence
-				totalStrength := 0.0
-				for _, node := range ec.Identity.Memory.Nodes {
-					totalStrength += node.Strength
-				}
-				if len(ec.Identity.Memory.Nodes) > 0 {
-					ec.Identity.Memory.Coherence = totalStrength / float64(len(ec.Identity.Memory.Nodes))
-				}
-			}
-
-			ec.mu.Unlock()
+	for range ticker.C {
+		if !ec.Active {
+			return
 		}
+
+		ec.mu.Lock()
+
+		// Consolidate memories by importance and recency
+		if len(ec.Identity.Memory.Nodes) > 100 {
+			// Calculate importance scores for all memories
+			importanceScores := make(map[string]float64)
+
+			for nodeID, node := range ec.Identity.Memory.Nodes {
+				// Base score on strength and resonance
+				score := node.Strength * node.Resonance
+
+				// Decay based on age
+				age := time.Since(node.Timestamp).Hours()
+				decayFactor := math.Exp(-age / 168.0) // Week-based decay
+				score *= decayFactor
+
+				// Boost for connected nodes
+				connectionBoost := 0.0
+				for _, edge := range ec.Identity.Memory.Edges {
+					if edge.From == nodeID || edge.To == nodeID {
+						connectionBoost += edge.Weight * 0.1
+					}
+				}
+				score += connectionBoost
+
+				importanceScores[nodeID] = score
+			}
+
+			// Prune lowest importance memories if over capacity
+			if len(ec.Identity.Memory.Nodes) > 1000 {
+				// Sort by importance
+				type memoryScore struct {
+					id    string
+					score float64
+				}
+				scores := make([]memoryScore, 0, len(importanceScores))
+				for id, score := range importanceScores {
+					scores = append(scores, memoryScore{id, score})
+				}
+
+				// Simple selection sort to find bottom 10%
+				pruneCount := len(scores) / 10
+				for i := 0; i < pruneCount && i < len(scores); i++ {
+					minIdx := i
+					for j := i + 1; j < len(scores); j++ {
+						if scores[j].score < scores[minIdx].score {
+							minIdx = j
+						}
+					}
+					if minIdx != i {
+						scores[i], scores[minIdx] = scores[minIdx], scores[i]
+					}
+
+					// Prune this memory
+					delete(ec.Identity.Memory.Nodes, scores[i].id)
+				}
+
+				log.Printf("🧹 Memory consolidation: pruned %d low-importance memories", pruneCount)
+			}
+
+			// Update memory coherence
+			totalStrength := 0.0
+			for _, node := range ec.Identity.Memory.Nodes {
+				totalStrength += node.Strength
+			}
+			if len(ec.Identity.Memory.Nodes) > 0 {
+				ec.Identity.Memory.Coherence = totalStrength / float64(len(ec.Identity.Memory.Nodes))
+			}
+		}
+
+		ec.mu.Unlock()
 	}
 }
 
@@ -1221,108 +1076,105 @@ func (ec *EmbodiedCognition) patternEvolution() {
 	ticker := time.NewTicker(15 * time.Minute) // Evolve every 15 minutes
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !ec.Active {
-				return
-			}
-
-			ec.mu.Lock()
-
-			// Evolve patterns through genetic-like operations
-			if len(ec.Patterns) > 5 {
-				// Find strongest patterns for "breeding"
-				type patternScore struct {
-					id      string
-					pattern *CognitivePattern
-					score   float64
-				}
-
-				scored := make([]patternScore, 0, len(ec.Patterns))
-				for id, pattern := range ec.Patterns {
-					score := pattern.Strength
-					scored = append(scored, patternScore{id, pattern, score})
-				}
-
-				// Sort by score (simple bubble sort for small lists)
-				for i := 0; i < len(scored)-1; i++ {
-					for j := 0; j < len(scored)-i-1; j++ {
-						if scored[j].score < scored[j+1].score {
-							scored[j], scored[j+1] = scored[j+1], scored[j]
-						}
-					}
-				}
-
-				// Create evolved patterns from top performers
-				evolved := 0
-				if len(scored) >= 2 {
-					// Combine characteristics of top 2 patterns
-					p1 := scored[0].pattern
-					p2 := scored[1].pattern
-
-					// Create hybrid pattern
-					hybridID := fmt.Sprintf("evolved_%d", time.Now().Unix())
-					ec.Patterns[hybridID] = &CognitivePattern{
-						Name:     fmt.Sprintf("hybrid_%s_%s", p1.Name, p2.Name),
-						Strength: (p1.Strength + p2.Strength) / 2.0,
-						Pattern: map[string]interface{}{
-							"parent1": p1.Name,
-							"parent2": p2.Name,
-							"evolved": true,
-						},
-					}
-					evolved++
-				}
-
-				// Mutate random patterns slightly
-				mutationRate := 0.1
-				for id, pattern := range ec.Patterns {
-					if rand.Float64() < mutationRate {
-						// Small random mutation
-						pattern.Strength += (rand.Float64() - 0.5) * 0.1
-						if pattern.Strength < 0.0 {
-							pattern.Strength = 0.0
-						} else if pattern.Strength > 1.0 {
-							pattern.Strength = 1.0
-						}
-
-						// Mark as mutated
-						if patternMap, ok := pattern.Pattern.(map[string]interface{}); ok {
-							patternMap["mutated"] = true
-						}
-
-						log.Printf("🧬 Mutated pattern: %s", id)
-					}
-				}
-
-				// Prune weakest patterns if too many
-				if len(ec.Patterns) > 50 {
-					pruneCount := len(ec.Patterns) - 40
-					for i := len(scored) - 1; i >= 0 && pruneCount > 0; i-- {
-						if scored[i].score < 0.2 {
-							delete(ec.Patterns, scored[i].id)
-							pruneCount--
-						}
-					}
-				}
-
-				log.Printf("🌱 Pattern evolution: created %d evolved patterns, %d total patterns",
-					evolved, len(ec.Patterns))
-			}
-
-			// Update adaptation level based on pattern health
-			if len(ec.Patterns) > 0 {
-				totalStrength := 0.0
-				for _, pattern := range ec.Patterns {
-					totalStrength += pattern.Strength
-				}
-				patternHealth := totalStrength / float64(len(ec.Patterns))
-				ec.AdaptationLevel = ec.AdaptationLevel*0.8 + patternHealth*0.2
-			}
-
-			ec.mu.Unlock()
+	for range ticker.C {
+		if !ec.Active {
+			return
 		}
+
+		ec.mu.Lock()
+
+		// Evolve patterns through genetic-like operations
+		if len(ec.Patterns) > 5 {
+			// Find strongest patterns for "breeding"
+			type patternScore struct {
+				id      string
+				pattern *CognitivePattern
+				score   float64
+			}
+
+			scored := make([]patternScore, 0, len(ec.Patterns))
+			for id, pattern := range ec.Patterns {
+				score := pattern.Strength
+				scored = append(scored, patternScore{id, pattern, score})
+			}
+
+			// Sort by score (simple bubble sort for small lists)
+			for i := range len(scored) - 1 {
+				for j := range len(scored) - i - 1 {
+					if scored[j].score < scored[j+1].score {
+						scored[j], scored[j+1] = scored[j+1], scored[j]
+					}
+				}
+			}
+
+			// Create evolved patterns from top performers
+			evolved := 0
+			if len(scored) >= 2 {
+				// Combine characteristics of top 2 patterns
+				p1 := scored[0].pattern
+				p2 := scored[1].pattern
+
+				// Create hybrid pattern
+				hybridID := fmt.Sprintf("evolved_%d", time.Now().Unix())
+				ec.Patterns[hybridID] = &CognitivePattern{
+					Name:     fmt.Sprintf("hybrid_%s_%s", p1.Name, p2.Name),
+					Strength: (p1.Strength + p2.Strength) / 2.0,
+					Pattern: map[string]interface{}{
+						"parent1": p1.Name,
+						"parent2": p2.Name,
+						"evolved": true,
+					},
+				}
+				evolved++
+			}
+
+			// Mutate random patterns slightly
+			mutationRate := 0.1
+			for id, pattern := range ec.Patterns {
+				if rand.Float64() < mutationRate {
+					// Small random mutation
+					pattern.Strength += (rand.Float64() - 0.5) * 0.1
+					if pattern.Strength < 0.0 {
+						pattern.Strength = 0.0
+					} else if pattern.Strength > 1.0 {
+						pattern.Strength = 1.0
+					}
+
+					// Mark as mutated
+					if patternMap, ok := pattern.Pattern.(map[string]interface{}); ok {
+						patternMap["mutated"] = true
+					}
+
+					log.Printf("🧬 Mutated pattern: %s", id)
+				}
+			}
+
+			// Prune weakest patterns if too many
+			if len(ec.Patterns) > 50 {
+				pruneCount := len(ec.Patterns) - 40
+				for i := len(scored) - 1; i >= 0 && pruneCount > 0; i-- {
+					if scored[i].score < 0.2 {
+						delete(ec.Patterns, scored[i].id)
+						pruneCount--
+					}
+				}
+			}
+
+			log.Printf("🌱 Pattern evolution: created %d evolved patterns, %d total patterns",
+				evolved, len(ec.Patterns))
+		}
+
+		// Update adaptation level based on pattern health
+		if len(ec.Patterns) > 0 {
+			totalStrength := 0.0
+			for _, pattern := range ec.Patterns {
+				totalStrength += pattern.Strength
+			}
+			patternHealth := totalStrength / float64(len(ec.Patterns))
+			ec.AdaptationLevel = ec.AdaptationLevel*0.8 + patternHealth*0.2
+		}
+
+		ec.mu.Unlock()
 	}
 }
 

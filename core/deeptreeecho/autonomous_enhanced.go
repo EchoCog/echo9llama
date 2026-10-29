@@ -18,7 +18,7 @@ import (
 // with persistent memory, LLM-powered thought generation, and 12-step cognitive architecture
 type EnhancedAutonomousConsciousness struct {
 	mu     sync.RWMutex
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx // lifecycle context owned by this consciousness
 	cancel context.CancelFunc
 
 	// Core identity
@@ -47,9 +47,7 @@ type EnhancedAutonomousConsciousness struct {
 	workingMemory *WorkingMemory
 
 	// Autonomous state
-	awake    bool
-	thinking bool
-	learning bool
+	awake bool
 
 	// Interest patterns
 	interests *InterestSystem

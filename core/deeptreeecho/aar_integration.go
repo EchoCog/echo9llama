@@ -259,38 +259,6 @@ func extractAspiration(content string) string {
 	return ""
 }
 
-// extractDominantTheme extracts the dominant theme from content
-func extractDominantTheme(content string) string {
-	content = strings.ToLower(content)
-
-	themes := map[string][]string{
-		"wisdom":        {"wisdom", "knowledge", "understanding", "insight"},
-		"consciousness": {"consciousness", "awareness", "self", "mind"},
-		"learning":      {"learn", "study", "practice", "skill"},
-		"creativity":    {"create", "imagine", "invent", "design"},
-		"connection":    {"connect", "relate", "relationship", "together"},
-		"growth":        {"grow", "develop", "evolve", "improve"},
-	}
-
-	maxCount := 0
-	dominantTheme := ""
-
-	for theme, keywords := range themes {
-		count := 0
-		for _, keyword := range keywords {
-			if strings.Contains(content, keyword) {
-				count++
-			}
-		}
-		if count > maxCount {
-			maxCount = count
-			dominantTheme = theme
-		}
-	}
-
-	return dominantTheme
-}
-
 // GetAARState returns a comprehensive state snapshot for LLM context
 func (aar *AARCore) GetAARState() AARState {
 	aar.mu.RLock()

@@ -302,7 +302,7 @@ func (i *Identity) initializeReservoir(size int) {
 	}
 
 	// Initialize nodes
-	for j := 0; j < size; j++ {
+	for j := range size {
 		i.Reservoir.Nodes[j] = ReservoirNode{
 			ID:         j,
 			Activation: rand.Float64(),
@@ -313,7 +313,7 @@ func (i *Identity) initializeReservoir(size int) {
 
 		// Initialize sparse connections
 		i.Reservoir.Connections[j] = make([]float64, size)
-		for k := 0; k < size; k++ {
+		for k := range size {
 			if rand.Float64() < i.Reservoir.Sparsity {
 				i.Reservoir.Connections[j][k] = rand.Float64()*2 - 1
 			}
@@ -588,7 +588,7 @@ func generateID() string {
 // initializeIdentityVector creates the initial identity embedding
 func (i *Identity) initializeIdentityVector() {
 	// Create identity vector based on cognitive characteristics
-	for j := 0; j < i.Embeddings.Dimensions; j++ {
+	for j := range i.Embeddings.Dimensions {
 		// Base identity signature
 		base := math.Sin(float64(j) * 0.1)
 
@@ -621,23 +621,20 @@ func (i *Identity) updateEmbeddings() {
 	ticker := time.NewTicker(i.Embeddings.UpdateFreq)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			i.mu.Lock()
+	for range ticker.C {
+		i.mu.Lock()
 
-			// Update identity vector based on current state
-			i.updateIdentityVector()
+		// Update identity vector based on current state
+		i.updateIdentityVector()
 
-			// Update state embeddings
-			i.updateStateEmbeddings()
+		// Update state embeddings
+		i.updateStateEmbeddings()
 
-			// Update repository embeddings
-			i.updateRepoEmbeddings()
+		// Update repository embeddings
+		i.updateRepoEmbeddings()
 
-			i.Embeddings.LastUpdate = time.Now()
-			i.mu.Unlock()
-		}
+		i.Embeddings.LastUpdate = time.Now()
+		i.mu.Unlock()
 	}
 }
 
@@ -647,7 +644,7 @@ func (i *Identity) updateIdentityVector() {
 	decay := 0.99
 	adaptation := 0.01
 
-	for j := 0; j < i.Embeddings.Dimensions; j++ {
+	for j := range i.Embeddings.Dimensions {
 		// Apply decay
 		i.Embeddings.IdentityVector[j] *= decay
 
@@ -672,7 +669,7 @@ func (i *Identity) updateIdentityVector() {
 
 // updateStateEmbeddings updates cognitive state embeddings
 func (i *Identity) updateStateEmbeddings() {
-	for j := 0; j < i.Embeddings.Dimensions; j++ {
+	for j := range i.Embeddings.Dimensions {
 		// Combine various state components
 		coherence := i.Coherence
 		energy := i.SpatialContext.Field.Intensity
@@ -710,7 +707,7 @@ func (i *Identity) updateRepoEmbeddings() {
 		embedding := make([]float64, i.Embeddings.Dimensions)
 
 		// Create embedding based on Deep Tree Echo cognitive patterns
-		for j := 0; j < i.Embeddings.Dimensions; j++ {
+		for j := range i.Embeddings.Dimensions {
 			// Cognitive resonance component
 			resonance := math.Sin(float64(j)*0.01*importance) * i.SpatialContext.Field.Resonance
 
@@ -748,7 +745,7 @@ func (i *Identity) EncodeText(text string) []float64 {
 	embedding := make([]float64, i.Embeddings.Dimensions)
 
 	// Simple text encoding based on character distribution
-	for j := 0; j < i.Embeddings.Dimensions; j++ {
+	for j := range i.Embeddings.Dimensions {
 		value := 0.0
 
 		// Character-based encoding
@@ -781,7 +778,7 @@ func (i *Identity) CosineSimilarity(a, b []float64) float64 {
 	normA := 0.0
 	normB := 0.0
 
-	for j := 0; j < len(a); j++ {
+	for j := range a {
 		dotProduct += a[j] * b[j]
 		normA += a[j] * a[j]
 		normB += b[j] * b[j]
@@ -961,7 +958,7 @@ func (i *Identity) extractPatterns(input string) []*Pattern {
 
 	// Extract patterns based on reservoir activation clusters
 	clusterThreshold := 0.7
-	for j := 0; j < len(stateSnapshot); j++ {
+	for j := range stateSnapshot {
 		if math.Abs(stateSnapshot[j]) > clusterThreshold {
 			// High activation node - potential pattern
 			pattern := &Pattern{
@@ -973,7 +970,7 @@ func (i *Identity) extractPatterns(input string) []*Pattern {
 			}
 
 			// Find connected nodes
-			for k := 0; k < len(i.Reservoir.Connections[j]); k++ {
+			for k := range len(i.Reservoir.Connections[j]) {
 				if i.Reservoir.Connections[j][k] != 0 && math.Abs(stateSnapshot[k]) > 0.5 {
 					pattern.Connections[fmt.Sprintf("node_%d", k)] = i.Reservoir.Connections[j][k]
 				}
@@ -1415,23 +1412,4 @@ func (id *Identity) GetWisdomScore() float64 {
 	// Combined wisdom score
 	// Future: add morality and meaning components
 	return balanceWisdom
-}
-
-// Helper method to calculate novelty score
-func (id *Identity) calculateNoveltyScore() float64 {
-	// Simple novelty based on pattern exploration
-	// In full implementation: track seen patterns and calculate information-theoretic novelty
-	if len(id.Patterns) == 0 {
-		return 1.0 // Everything is novel at first
-	}
-
-	// Novelty decreases as patterns accumulate
-	return 1.0 - math.Min(float64(len(id.Patterns))/100.0, 1.0)
-}
-
-// Helper method to calculate average performance
-func (id *Identity) calculateAveragePerformance() float64 {
-	// Simplified: use coherence as proxy for performance
-	// In full implementation: track actual task performance metrics
-	return id.Coherence
 }

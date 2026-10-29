@@ -367,7 +367,7 @@ func (h *HGQLIntrospection) Reflect(depth int) *ReflectionConclusion {
 	h.ReflectionPool.ReflectionThreads = append(h.ReflectionPool.ReflectionThreads, thread)
 
 	// Reflect at each depth level
-	for d := 0; d < depth; d++ {
+	for d := range depth {
 		thought := h.reflectAtDepth(d)
 		thread.Thoughts = append(thread.Thoughts, thought)
 
@@ -574,22 +574,19 @@ func (h *HGQLIntrospection) continuousIntrospection() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			// Introspect on current state
-			insights := h.Introspect("current cognitive state")
+	for range ticker.C {
+		// Introspect on current state
+		insights := h.Introspect("current cognitive state")
 
-			// Process significant insights
-			for _, insight := range insights {
-				if insight.Confidence > 0.8 && insight.Actionable {
-					h.actOnInsight(insight)
-				}
+		// Process significant insights
+		for _, insight := range insights {
+			if insight.Confidence > 0.8 && insight.Actionable {
+				h.actOnInsight(insight)
 			}
-
-			// Update cognitive load
-			h.updateCognitiveLoad()
 		}
+
+		// Update cognitive load
+		h.updateCognitiveLoad()
 	}
 }
 
@@ -598,17 +595,14 @@ func (h *HGQLIntrospection) insightGeneration() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			// Generate intuitive insight
-			insight := h.GenerateIntuitiveInsight()
+	for range ticker.C {
+		// Generate intuitive insight
+		insight := h.GenerateIntuitiveInsight()
 
-			// Evaluate insight quality
-			if insight.Confidence > 0.7 {
-				// Store high-quality insights
-				h.storeInsight(insight)
-			}
+		// Evaluate insight quality
+		if insight.Confidence > 0.7 {
+			// Store high-quality insights
+			h.storeInsight(insight)
 		}
 	}
 }
@@ -618,16 +612,13 @@ func (h *HGQLIntrospection) reflectionCycle() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			// Perform self-reflection
-			conclusion := h.Reflect(2)
+	for range ticker.C {
+		// Perform self-reflection
+		conclusion := h.Reflect(2)
 
-			// Act on conclusions
-			for _, action := range conclusion.Actions {
-				h.executeAction(action)
-			}
+		// Act on conclusions
+		for _, action := range conclusion.Actions {
+			h.executeAction(action)
 		}
 	}
 }
@@ -673,7 +664,7 @@ func (h *HGQLIntrospection) reflectAtDepth(depth int) string {
 func (h *HGQLIntrospection) findThoughtConnections(thoughts []string) []string {
 	connections := make([]string, 0)
 
-	for i := 0; i < len(thoughts)-1; i++ {
+	for i := range len(thoughts) - 1 {
 		connection := fmt.Sprintf("%d->%d", i, i+1)
 		connections = append(connections, connection)
 	}
@@ -896,18 +887,22 @@ func (h *HGQLIntrospection) createInsightTemplates() {
 
 // Type definitions for components
 
-type QueryOperator func(query string) ([]interface{}, error)
-type Aggregator func(data []interface{}) interface{}
-type Transformer func(input interface{}) interface{}
+type (
+	QueryOperator func(query string) ([]interface{}, error)
+	Aggregator    func(data []interface{}) interface{}
+	Transformer   func(input interface{}) interface{}
+)
 
 type InsightTemplate struct {
 	Type     string
 	Template string
 }
 
-type PatternMatcher struct{}
-type ConfidenceCalculator struct{}
-type GraphTopology struct{}
+type (
+	PatternMatcher       struct{}
+	ConfidenceCalculator struct{}
+	GraphTopology        struct{}
+)
 
 // introspectOperator handles INTROSPECT queries
 func (h *HGQLIntrospection) introspectOperator(query string) ([]interface{}, error) {

@@ -22,14 +22,14 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/go-cmp/cmp"
 	"github.com/EchoCog/echollama/api"
 	"github.com/EchoCog/echollama/fs/ggml"
 	"github.com/EchoCog/echollama/openai"
 	"github.com/EchoCog/echollama/server/internal/client/ollama"
 	"github.com/EchoCog/echollama/types/model"
 	"github.com/EchoCog/echollama/version"
+	"github.com/gin-gonic/gin"
+	"github.com/google/go-cmp/cmp"
 )
 
 func createTestFile(t *testing.T, name string) (string, string) {

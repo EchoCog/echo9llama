@@ -18,7 +18,7 @@ type LLMIntegration struct {
 	baseURL    string
 	model      string
 	httpClient *http.Client
-	ctx        context.Context
+	ctx        context.Context //nolint:containedctx // lifecycle context owned by this integration
 }
 
 // LLMRequest represents a request to the LLM API
@@ -348,8 +348,8 @@ func (llm *LLMIntegration) getTopInterests(interests map[string]float64, n int) 
 	}
 
 	// Simple bubble sort for small n
-	for i := 0; i < len(sorted)-1; i++ {
-		for j := 0; j < len(sorted)-i-1; j++ {
+	for i := range len(sorted) - 1 {
+		for j := range len(sorted) - i - 1 {
 			if sorted[j].Value < sorted[j+1].Value {
 				sorted[j], sorted[j+1] = sorted[j+1], sorted[j]
 			}

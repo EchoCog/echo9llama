@@ -14,7 +14,7 @@ import (
 // Relation: emergent self (continuous feedback loops)
 type AARCore struct {
 	mu     sync.RWMutex
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx // lifecycle context owned by this core
 	cancel context.CancelFunc
 
 	// Agent component (dynamic transformations)
@@ -315,8 +315,7 @@ func (aar *AARCore) updateRelation(agentOutput, arenaOutput []float64) {
 	for i := range aar.relation.selfRepresentation {
 		if i < len(agentOutput) && i < len(arenaOutput) {
 			// Weighted combination
-			aar.relation.selfRepresentation[i] =
-				0.5*agentOutput[i] + 0.5*arenaOutput[i]
+			aar.relation.selfRepresentation[i] = 0.5*agentOutput[i] + 0.5*arenaOutput[i]
 		}
 	}
 

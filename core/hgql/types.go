@@ -1,4 +1,3 @@
-
 package hgql
 
 import (
@@ -10,7 +9,7 @@ import (
 // HGQLResponse represents the response from an HGQL query
 type HGQLResponse struct {
 	Data       interface{}            `json:"data"`
-	Errors     []HGQLError           `json:"errors,omitempty"`
+	Errors     []HGQLError            `json:"errors,omitempty"`
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
@@ -30,21 +29,21 @@ type ErrorLocation struct {
 
 // Query Processing Types
 type HGQLParser struct {
-	Rules         map[string]*ParseRule
+	Rules           map[string]*ParseRule
 	HyperExtensions map[string]*HyperExtension
 }
 
 type HyperGraphExecutor struct {
-	Identity      interface{} // Deep Tree Echo Identity
-	Resolvers     map[string]*HyperResolver
+	Identity        interface{} // Deep Tree Echo Identity
+	Resolvers       map[string]*HyperResolver
 	TraversalEngine *TraversalEngine
 	PatternMatcher  *PatternMatcher
 }
 
 type QueryOptimizer struct {
 	OptimizationRules []OptimizationRule
-	CostModel        *CostModel
-	Statistics       *QueryStatistics
+	CostModel         *CostModel
+	Statistics        *QueryStatistics
 }
 
 type PatternRecognition struct {
@@ -55,9 +54,9 @@ type PatternRecognition struct {
 }
 
 type MultiScaleProcessor struct {
-	Scales        []ProcessingScale
-	Aggregators   map[string]*ScaleAggregator
-	CurrentScale  int
+	Scales       []ProcessingScale
+	Aggregators  map[string]*ScaleAggregator
+	CurrentScale int
 }
 
 // Data Source Configuration
@@ -65,25 +64,25 @@ type DataSourceConfig struct {
 	Name      string                 `json:"name"`
 	Type      string                 `json:"type"`
 	Config    map[string]interface{} `json:"config"`
-	Transform *DataTransformation   `json:"transform,omitempty"`
-	Auth      *AuthConfig           `json:"auth,omitempty"`
+	Transform *DataTransformation    `json:"transform,omitempty"`
+	Auth      *AuthConfig            `json:"auth,omitempty"`
 }
 
 type AuthConfig struct {
 	Type        string                 `json:"type"`
 	Credentials map[string]interface{} `json:"credentials"`
 	TokenURL    string                 `json:"token_url,omitempty"`
-	Scope       []string              `json:"scope,omitempty"`
+	Scope       []string               `json:"scope,omitempty"`
 }
 
 // Transformation Pipeline Types
 type TransformRule struct {
-	ID        string                 `json:"id"`
-	Type      string                 `json:"type"`
-	Source    string                 `json:"source"`
-	Target    string                 `json:"target"`
-	Function  string                 `json:"function"`
-	Params    map[string]interface{} `json:"params,omitempty"`
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	Source   string                 `json:"source"`
+	Target   string                 `json:"target"`
+	Function string                 `json:"function"`
+	Params   map[string]interface{} `json:"params,omitempty"`
 }
 
 type FilterRule struct {
@@ -94,10 +93,10 @@ type FilterRule struct {
 }
 
 type AggregationRule struct {
-	Type      string   `json:"type"`
-	Fields    []string `json:"fields"`
-	GroupBy   []string `json:"group_by,omitempty"`
-	Having    []FilterRule `json:"having,omitempty"`
+	Type    string       `json:"type"`
+	Fields  []string     `json:"fields"`
+	GroupBy []string     `json:"group_by,omitempty"`
+	Having  []FilterRule `json:"having,omitempty"`
 }
 
 // Cache System Types
@@ -112,38 +111,38 @@ type HGQLCache struct {
 }
 
 type CachedResult struct {
-	Key        string      `json:"key"`
-	Data       interface{} `json:"data"`
-	Timestamp  time.Time   `json:"timestamp"`
-	TTL        time.Duration `json:"ttl"`
-	AccessCount int64      `json:"access_count"`
+	Key         string        `json:"key"`
+	Data        interface{}   `json:"data"`
+	Timestamp   time.Time     `json:"timestamp"`
+	TTL         time.Duration `json:"ttl"`
+	AccessCount int64         `json:"access_count"`
 }
 
 type CachedSchema struct {
-	Version   string             `json:"version"`
-	Schema    *HyperGraphSchema  `json:"schema"`
-	Timestamp time.Time          `json:"timestamp"`
+	Version   string            `json:"version"`
+	Schema    *HyperGraphSchema `json:"schema"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
 type CachedPattern struct {
-	PatternID string             `json:"pattern_id"`
-	Pattern   *CognitivePattern  `json:"pattern"`
+	PatternID string            `json:"pattern_id"`
+	Pattern   *CognitivePattern `json:"pattern"`
 	Usage     int64             `json:"usage"`
 	Timestamp time.Time         `json:"timestamp"`
 }
 
 // Security and Authentication Types
 type SecurityContext struct {
-	AuthRequired   bool                    `json:"auth_required"`
-	Permissions    map[string]*Permission  `json:"permissions"`
-	RateLimit      int                     `json:"rate_limit"`
+	AuthRequired   bool                   `json:"auth_required"`
+	Permissions    map[string]*Permission `json:"permissions"`
+	RateLimit      int                    `json:"rate_limit"`
 	AllowedOrigins []string               `json:"allowed_origins"`
-	TokenValidator *TokenValidator         `json:"token_validator"`
+	TokenValidator *TokenValidator        `json:"token_validator"`
 }
 
 type Permission struct {
-	Resource string   `json:"resource"`
-	Actions  []string `json:"actions"`
+	Resource   string   `json:"resource"`
+	Actions    []string `json:"actions"`
 	Conditions []string `json:"conditions,omitempty"`
 }
 
@@ -161,12 +160,12 @@ type Subscription struct {
 	Channel   chan *HGQLResponse     `json:"-"`
 	Context   *SubscriptionContext   `json:"context"`
 	Active    bool                   `json:"active"`
-	CreatedAt time.Time             `json:"created_at"`
+	CreatedAt time.Time              `json:"created_at"`
 }
 
 type SubscriptionContext struct {
-	UserID      string            `json:"user_id"`
-	Permissions []string          `json:"permissions"`
+	UserID      string                 `json:"user_id"`
+	Permissions []string               `json:"permissions"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
@@ -187,12 +186,12 @@ type ConnectionStatus struct {
 }
 
 type MonitoringAlert struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Message     string    `json:"message"`
-	Severity    string    `json:"severity"`
-	Timestamp   time.Time `json:"timestamp"`
-	ConnectionID string   `json:"connection_id"`
+	ID           string    `json:"id"`
+	Type         string    `json:"type"`
+	Message      string    `json:"message"`
+	Severity     string    `json:"severity"`
+	Timestamp    time.Time `json:"timestamp"`
+	ConnectionID string    `json:"connection_id"`
 }
 
 type MonitoringThresholds struct {
@@ -228,8 +227,8 @@ type ConceptNode struct {
 	ID          string                 `json:"id"`
 	Concept     string                 `json:"concept"`
 	Attributes  map[string]interface{} `json:"attributes"`
-	Resonance   float64               `json:"resonance"`
-	Connections []string              `json:"connections"`
+	Resonance   float64                `json:"resonance"`
+	Connections []string               `json:"connections"`
 }
 
 type SemanticEdge struct {
@@ -261,24 +260,24 @@ type QueryContext struct {
 }
 
 type TemporalQuery struct {
-	TimeRange *TimeRange            `json:"time_range"`
-	Patterns  []string              `json:"patterns"`
-	Aggregation string              `json:"aggregation"`
-	Resolution  time.Duration       `json:"resolution"`
+	TimeRange   *TimeRange    `json:"time_range"`
+	Patterns    []string      `json:"patterns"`
+	Aggregation string        `json:"aggregation"`
+	Resolution  time.Duration `json:"resolution"`
 }
 
 type SpatialQuery struct {
-	Coordinates *Coordinates          `json:"coordinates"`
-	Radius      float64              `json:"radius"`
-	Dimensions  []string             `json:"dimensions"`
-	Projection  string               `json:"projection"`
+	Coordinates *Coordinates `json:"coordinates"`
+	Radius      float64      `json:"radius"`
+	Dimensions  []string     `json:"dimensions"`
+	Projection  string       `json:"projection"`
 }
 
 type CognitiveQuery struct {
-	Patterns    []string             `json:"patterns"`
-	Resonance   *ResonanceQuery      `json:"resonance"`
-	Emergence   *EmergenceQuery      `json:"emergence"`
-	Context     string               `json:"context"`
+	Patterns  []string        `json:"patterns"`
+	Resonance *ResonanceQuery `json:"resonance"`
+	Emergence *EmergenceQuery `json:"emergence"`
+	Context   string          `json:"context"`
 }
 
 // Supporting Types
@@ -288,32 +287,34 @@ type TimeRange struct {
 }
 
 type Coordinates struct {
-	X, Y, Z float64 `json:"x,y,z"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
 }
 
 type ResonanceQuery struct {
-	MinResonance float64  `json:"min_resonance"`
+	MinResonance float64   `json:"min_resonance"`
 	Frequencies  []float64 `json:"frequencies"`
 }
 
 type EmergenceQuery struct {
-	Threshold   float64  `json:"threshold"`
-	Patterns    []string `json:"patterns"`
-	TimeWindow  time.Duration `json:"time_window"`
+	Threshold  float64       `json:"threshold"`
+	Patterns   []string      `json:"patterns"`
+	TimeWindow time.Duration `json:"time_window"`
 }
 
 type PatternMatch struct {
-	Pattern    string    `json:"pattern"`
-	Confidence float64   `json:"confidence"`
-	Nodes      []string  `json:"nodes"`
+	Pattern    string                 `json:"pattern"`
+	Confidence float64                `json:"confidence"`
+	Nodes      []string               `json:"nodes"`
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 type TraversalConstraint struct {
-	Type      string      `json:"type"`
-	Field     string      `json:"field"`
-	Operator  string      `json:"operator"`
-	Value     interface{} `json:"value"`
+	Type     string      `json:"type"`
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
 }
 
 // Rate Limiting Types
@@ -323,9 +324,9 @@ type RateLimit struct {
 }
 
 type RateLimiter struct {
-	Limits    map[string]*RateLimit
-	Counters  map[string]*RateCounter
-	Enabled   bool
+	Limits   map[string]*RateLimit
+	Counters map[string]*RateCounter
+	Enabled  bool
 }
 
 type RateCounter struct {
@@ -349,16 +350,16 @@ type AuthenticationManager struct {
 }
 
 type AuthProvider struct {
-	Name     string                 `json:"name"`
-	Type     string                 `json:"type"`
-	Config   map[string]interface{} `json:"config"`
+	Name     string                                   `json:"name"`
+	Type     string                                   `json:"type"`
+	Config   map[string]interface{}                   `json:"config"`
 	Validate func(token string) (*AuthSession, error) `json:"-"`
 }
 
 type AuthSession struct {
-	UserID      string    `json:"user_id"`
-	Permissions []string  `json:"permissions"`
-	ExpiresAt   time.Time `json:"expires_at"`
+	UserID      string                 `json:"user_id"`
+	Permissions []string               `json:"permissions"`
+	ExpiresAt   time.Time              `json:"expires_at"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
@@ -370,19 +371,19 @@ type AuthManagerConfig struct {
 
 // Transformation Pipeline Types
 type TransformationPipeline struct {
-	Stages      []TransformStage      `json:"stages"`
-	Config      *PipelineConfig       `json:"config"`
-	Metrics     *PipelineMetrics      `json:"metrics"`
-	Processors  map[string]*Processor `json:"processors"`
+	Stages     []TransformStage      `json:"stages"`
+	Config     *PipelineConfig       `json:"config"`
+	Metrics    *PipelineMetrics      `json:"metrics"`
+	Processors map[string]*Processor `json:"processors"`
 }
 
 type TransformStage struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Config      map[string]interface{} `json:"config"`
-	Enabled     bool                   `json:"enabled"`
-	Order       int                    `json:"order"`
+	ID      string                 `json:"id"`
+	Name    string                 `json:"name"`
+	Type    string                 `json:"type"`
+	Config  map[string]interface{} `json:"config"`
+	Enabled bool                   `json:"enabled"`
+	Order   int                    `json:"order"`
 }
 
 type PipelineConfig struct {
@@ -400,28 +401,30 @@ type PipelineMetrics struct {
 }
 
 type Processor struct {
-	ID      string                          `json:"id"`
-	Name    string                          `json:"name"`
+	ID      string                                      `json:"id"`
+	Name    string                                      `json:"name"`
 	Process func(data interface{}) (interface{}, error) `json:"-"`
-	Config  map[string]interface{}          `json:"config"`
+	Config  map[string]interface{}                      `json:"config"`
 }
 
 type RetryPolicy struct {
-	MaxRetries int           `json:"max_retries"`
-	BackoffMs  int           `json:"backoff_ms"`
-	Exponential bool         `json:"exponential"`
+	MaxRetries  int  `json:"max_retries"`
+	BackoffMs   int  `json:"backoff_ms"`
+	Exponential bool `json:"exponential"`
 }
 
 // Additional placeholder types for completeness
-type ParseRule struct{}
-type HyperExtension struct{}
-type HyperResolver struct{}
-type TraversalEngine struct{}
-type PatternMatcher struct{}
-type OptimizationRule struct{}
-type CostModel struct{}
-type QueryStatistics struct{}
-type CognitivePattern struct{}
-type ProcessingScale struct{}
-type ScaleAggregator struct{}
-type Argument struct{}
+type (
+	ParseRule        struct{}
+	HyperExtension   struct{}
+	HyperResolver    struct{}
+	TraversalEngine  struct{}
+	PatternMatcher   struct{}
+	OptimizationRule struct{}
+	CostModel        struct{}
+	QueryStatistics  struct{}
+	CognitivePattern struct{}
+	ProcessingScale  struct{}
+	ScaleAggregator  struct{}
+	Argument         struct{}
+)

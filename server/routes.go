@@ -59,10 +59,10 @@ var lowVRAMThreshold uint64 = 20 * format.GibiByte
 var mode string = gin.DebugMode
 
 type Server struct {
-	addr           net.Addr
-	sched          *Scheduler
-	lowVRAM        bool
-	orchestration  *orchestration.Engine
+	addr          net.Addr
+	sched         *Scheduler
+	lowVRAM       bool
+	orchestration *orchestration.Engine
 }
 
 func init() {
@@ -406,7 +406,7 @@ func (s *Server) GenerateHandler(c *gin.Context) {
 						return
 					}
 					res.Context = tokens
-					res.Tokens = tokens  // Copy for compatibility with tests expecting .tokens field
+					res.Tokens = tokens // Copy for compatibility with tests expecting .tokens field
 				}
 			}
 
@@ -1981,7 +1981,7 @@ func (s *Server) OrchestrationHandler(c *gin.Context) {
 	}
 
 	if req.KeepAlive != nil {
-		orchReq.KeepAlive = (*api.Duration)(req.KeepAlive)
+		orchReq.KeepAlive = req.KeepAlive
 	}
 
 	// Convert tasks

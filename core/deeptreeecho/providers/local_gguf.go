@@ -17,6 +17,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func NewLocalGGUFProvider() *LocalGGUFProvider {
 	return &LocalGGUFProvider{
 		baseURL: base,
 		model:   model,
-		client:  &http.Client{Timeout: 120 * time.Second},
+		client:  &http.Client{Timeout: requestTimeout()},
 	}
 }
 
@@ -109,6 +110,20 @@ func (p *LocalGGUFProvider) IsAvailable() bool {
 	return len(p.ListAvailableModels()) > 0
 }
 
+// defaultMaxTokens bounds a reply when the caller did not specify a length.
+const defaultMaxTokens = 512
+
+// requestTimeout reads LOCAL_LLM_TIMEOUT_SECONDS (default 180) so slow CPU-only
+// hosts can be given more time instead of their replies being dropped.
+func requestTimeout() time.Duration {
+	if raw := os.Getenv("LOCAL_LLM_TIMEOUT_SECONDS"); raw != "" {
+		if secs, err := strconv.Atoi(raw); err == nil && secs > 0 {
+			return time.Duration(secs) * time.Second
+		}
+	}
+	return 180 * time.Second
+}
+
 type chatRequest struct {
 	Model       string                     `json:"model"`
 	Messages    []deeptreeecho.ChatMessage `json:"messages"`
@@ -124,11 +139,17 @@ func (p *LocalGGUFProvider) buildRequest(messages []deeptreeecho.ChatMessage, o 
 	if o.Model != "" {
 		model = o.Model
 	}
+	maxTokens := o.MaxTokens
+	if maxTokens <= 0 {
+		// A locally served model on CPU must never be asked for an unbounded
+		// reply: without a cap a rambling completion outlives the request.
+		maxTokens = defaultMaxTokens
+	}
 	return chatRequest{
 		Model:       model,
 		Messages:    messages,
 		Temperature: o.Temperature,
-		MaxTokens:   o.MaxTokens,
+		MaxTokens:   maxTokens,
 		TopP:        o.TopP,
 		Stop:        o.StopSequences,
 		Stream:      stream,
@@ -195,45 +216,59 @@ func (p *LocalGGUFProvider) ChatStream(ctx context.Context, messages []deeptreee
 	if options.SystemPrompt != "" {
 		messages = append([]deeptreeecho.ChatMessage{{Role: "system", Content: options.SystemPrompt}}, messages...)
 	}
-	resp, err := p.post(ctx, "/chat/completions", p.buildRequest(messages, options.GenerateOptions, true))
+	body, err := p.openStream(ctx, "/chat/completions", p.buildRequest(messages, options.GenerateOptions, true))
 	if err != nil {
 		return nil, err
 	}
 	ch := make(chan string, 64)
-	go func() {
-		defer close(ch)
-		defer resp.Body.Close()
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if !strings.HasPrefix(line, "data:") {
-				continue
-			}
-			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-			if data == "[DONE]" {
+	go streamChunks(ctx, body, ch)
+	return ch, nil
+}
+
+// openStream posts req and hands the response body to the caller, who owns it
+// and must close it once the stream has been consumed.
+func (p *LocalGGUFProvider) openStream(ctx context.Context, path string, req interface{}) (io.ReadCloser, error) {
+	resp, err := p.post(ctx, path, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
+// streamChunks reads SSE chunks from body into ch and closes both the body and
+// the channel when the stream ends or ctx is cancelled.
+func streamChunks(ctx context.Context, body io.ReadCloser, ch chan<- string) {
+	defer close(ch)
+	defer body.Close()
+	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			return
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if json.Unmarshal([]byte(data), &chunk) != nil || len(chunk.Choices) == 0 {
+			continue
+		}
+		if c := chunk.Choices[0].Delta.Content; c != "" {
+			select {
+			case ch <- c:
+			case <-ctx.Done():
 				return
 			}
-			var chunk struct {
-				Choices []struct {
-					Delta struct {
-						Content string `json:"content"`
-					} `json:"delta"`
-				} `json:"choices"`
-			}
-			if json.Unmarshal([]byte(data), &chunk) != nil || len(chunk.Choices) == 0 {
-				continue
-			}
-			if c := chunk.Choices[0].Delta.Content; c != "" {
-				select {
-				case ch <- c:
-				case <-ctx.Done():
-					return
-				}
-			}
 		}
-	}()
-	return ch, nil
+	}
 }
 
 // GenerateStream implements ModelProvider.GenerateStream.

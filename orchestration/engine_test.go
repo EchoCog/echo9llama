@@ -1,7 +1,6 @@
 package orchestration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -13,7 +12,7 @@ func TestNewEngine(t *testing.T) {
 	engine := NewEngine(client)
 
 	if engine == nil {
-		t.Error("NewEngine should return a non-nil engine")
+		t.Fatal("NewEngine should return a non-nil engine")
 	}
 
 	if engine.agents == nil {
@@ -28,7 +27,7 @@ func TestNewEngine(t *testing.T) {
 func TestCreateAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	agent := &Agent{
 		Name:        "test-agent",
@@ -68,7 +67,7 @@ func TestCreateAgent(t *testing.T) {
 func TestListAgents(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Initially should be empty
 	agents, err := engine.ListAgents(ctx)
@@ -110,7 +109,7 @@ func TestListAgents(t *testing.T) {
 func TestUpdateAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create an agent first
 	agent := &Agent{
@@ -152,7 +151,7 @@ func TestUpdateAgent(t *testing.T) {
 func TestDeleteAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create an agent first
 	agent := &Agent{
@@ -182,7 +181,7 @@ func TestDeleteAgent(t *testing.T) {
 func TestGetNonExistentAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := engine.GetAgent(ctx, "non-existent-id")
 	if err == nil {
@@ -193,7 +192,7 @@ func TestGetNonExistentAgent(t *testing.T) {
 func TestDeleteNonExistentAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	err := engine.DeleteAgent(ctx, "non-existent-id")
 	if err == nil {
@@ -204,7 +203,7 @@ func TestDeleteNonExistentAgent(t *testing.T) {
 func TestUpdateNonExistentAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	agent := &Agent{
 		ID:          "non-existent-id",
@@ -222,7 +221,7 @@ func TestUpdateNonExistentAgent(t *testing.T) {
 func TestNewAgentTypes(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test creating different agent types
 	testCases := []struct {
@@ -312,7 +311,7 @@ func TestPluginRegistration(t *testing.T) {
 func TestEnhancedTaskExecution(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Register tools and plugins for testing
 	RegisterDefaultTools(engine)
@@ -386,7 +385,7 @@ func TestEnhancedTaskExecution(t *testing.T) {
 func TestReflectiveAgent(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a reflective agent
 	agent, err := engine.CreateSpecializedAgent(ctx, AgentTypeReflective, "self-analysis")
@@ -428,7 +427,7 @@ func TestReflectiveAgent(t *testing.T) {
 func TestStartConversation(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	agent1 := &Agent{
@@ -438,7 +437,7 @@ func TestStartConversation(t *testing.T) {
 		Models:      []string{"llama3.2"},
 	}
 	agent2 := &Agent{
-		Name:        "agent-2", 
+		Name:        "agent-2",
 		Description: "Test agent 2",
 		Type:        AgentTypeSpecialist,
 		Models:      []string{"llama3.2"},
@@ -480,7 +479,7 @@ func TestStartConversation(t *testing.T) {
 func TestSendMessage(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	agent1 := &Agent{
@@ -491,7 +490,7 @@ func TestSendMessage(t *testing.T) {
 	}
 	agent2 := &Agent{
 		Name:        "receiver",
-		Description: "Receiver agent", 
+		Description: "Receiver agent",
 		Type:        AgentTypeSpecialist,
 		Models:      []string{"llama3.2"},
 	}
@@ -549,7 +548,7 @@ func TestSendMessage(t *testing.T) {
 func TestListConversations(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	agent1 := &Agent{
@@ -592,7 +591,7 @@ func TestListConversations(t *testing.T) {
 		t.Fatalf("StartConversation failed: %v", err)
 	}
 
-	conv2, err := engine.StartConversation(ctx, []string{agent1.ID, agent3.ID}, "Conversation 2") 
+	conv2, err := engine.StartConversation(ctx, []string{agent1.ID, agent3.ID}, "Conversation 2")
 	if err != nil {
 		t.Fatalf("StartConversation failed: %v", err)
 	}
@@ -626,7 +625,7 @@ func TestListConversations(t *testing.T) {
 func TestCloseConversation(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	agent1 := &Agent{
@@ -691,7 +690,7 @@ func TestCloseConversation(t *testing.T) {
 func TestExecuteConversationWorkflow(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	orchestrator := &Agent{
@@ -719,9 +718,9 @@ func TestExecuteConversationWorkflow(t *testing.T) {
 
 	// Create workflow
 	workflow := &ConversationWorkflow{
-		ID:          "test-workflow",
-		Name:        "Test Workflow",
-		Description: "A test conversation workflow",
+		ID:           "test-workflow",
+		Name:         "Test Workflow",
+		Description:  "A test conversation workflow",
 		Participants: []string{orchestrator.ID, specialist.ID},
 		Steps: []ConversationStep{
 			{
@@ -735,7 +734,7 @@ func TestExecuteConversationWorkflow(t *testing.T) {
 				},
 			},
 			{
-				ID:              "step2", 
+				ID:              "step2",
 				Name:            "Follow-up",
 				FromAgentID:     orchestrator.ID,
 				ToAgentID:       specialist.ID,
@@ -776,7 +775,7 @@ func TestExecuteConversationWorkflow(t *testing.T) {
 func TestGetConversationMetrics(t *testing.T) {
 	client := api.Client{}
 	engine := NewEngine(client)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create test agents
 	agent1 := &Agent{

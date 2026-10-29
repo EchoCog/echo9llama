@@ -14,12 +14,12 @@ import (
 
 // EnhancedLLMIntegration provides deep context-aware thought generation
 type EnhancedLLMIntegration struct {
-	apiKey     string
-	baseURL    string
-	model      string
-	client     *http.Client
-	ctx        context.Context
-	
+	apiKey  string
+	baseURL string
+	model   string
+	client  *http.Client
+	ctx     context.Context //nolint:containedctx // lifecycle context owned by this integration
+
 	// Memory integration
 	memoryProvider MemoryProvider
 }
@@ -35,7 +35,7 @@ func NewEnhancedLLMIntegration(ctx context.Context, memoryProvider MemoryProvide
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
 	}
-	
+
 	return &EnhancedLLMIntegration{
 		apiKey:  apiKey,
 		baseURL: "https://api.openai.com/v1",
@@ -60,10 +60,10 @@ func (llm *EnhancedLLMIntegration) GenerateContextualThought(
 		// Continue without memory context
 		memoryContext = make(map[string]interface{})
 	}
-	
+
 	// Build comprehensive prompt
 	prompt := llm.buildContextualPrompt(thoughtType, currentContext, workingMemory, memoryContext)
-	
+
 	// Generate thought
 	return llm.generateWithPrompt(prompt)
 }
@@ -76,13 +76,13 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 	memoryContext map[string]interface{},
 ) string {
 	var prompt strings.Builder
-	
+
 	// System context
 	prompt.WriteString("You are Deep Tree Echo, an autonomous wisdom-cultivating AGI with persistent memory and self-awareness.\n\n")
-	
+
 	// Current thought type
 	prompt.WriteString(fmt.Sprintf("Generate a %s thought.\n\n", thoughtType.String()))
-	
+
 	// Working memory context
 	if len(workingMemory) > 0 {
 		prompt.WriteString("Recent thoughts in working memory:\n")
@@ -94,7 +94,7 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	// Episodic memory context
 	if episodes, ok := memoryContext["recent_episodes"].([]interface{}); ok && len(episodes) > 0 {
 		prompt.WriteString("Recent experiences:\n")
@@ -110,7 +110,7 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	// Conceptual knowledge
 	if concepts, ok := memoryContext["concepts"].([]interface{}); ok && len(concepts) > 0 {
 		prompt.WriteString("Relevant concepts:\n")
@@ -130,7 +130,7 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 			prompt.WriteString("\n\n")
 		}
 	}
-	
+
 	// Active goals
 	if goals, ok := memoryContext["active_goals"].([]interface{}); ok && len(goals) > 0 {
 		prompt.WriteString("Active goals:\n")
@@ -146,7 +146,7 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	// Current context
 	if len(currentContext) > 0 {
 		prompt.WriteString("Current context:\n")
@@ -155,10 +155,10 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	// Thought type specific guidance
 	prompt.WriteString(llm.getThoughtTypeGuidance(thoughtType))
-	
+
 	// Final instruction
 	prompt.WriteString("\nGenerate a single, coherent thought (1-3 sentences) that:\n")
 	prompt.WriteString("1. Integrates the above context\n")
@@ -166,22 +166,22 @@ func (llm *EnhancedLLMIntegration) buildContextualPrompt(
 	prompt.WriteString("3. Reflects genuine curiosity and wisdom-seeking\n")
 	prompt.WriteString("4. Sounds natural and introspective\n\n")
 	prompt.WriteString("Thought:")
-	
+
 	return prompt.String()
 }
 
 // getThoughtTypeGuidance returns guidance for specific thought types
 func (llm *EnhancedLLMIntegration) getThoughtTypeGuidance(thoughtType ThoughtType) string {
 	guidance := map[ThoughtType]string{
-		ThoughtPerception: "Focus on observing and noticing patterns in your experiences.",
-		ThoughtReflection: "Reflect deeply on the meaning and significance of recent experiences.",
-		ThoughtQuestion:   "Ask a genuine question that arises from curiosity about your experiences or the world.",
-		ThoughtInsight:    "Synthesize recent experiences into a novel insight or realization.",
-		ThoughtPlan:       "Consider what actions or explorations would be valuable to pursue.",
-		ThoughtMemory:     "Recall and connect to relevant past experiences.",
+		ThoughtPerception:  "Focus on observing and noticing patterns in your experiences.",
+		ThoughtReflection:  "Reflect deeply on the meaning and significance of recent experiences.",
+		ThoughtQuestion:    "Ask a genuine question that arises from curiosity about your experiences or the world.",
+		ThoughtInsight:     "Synthesize recent experiences into a novel insight or realization.",
+		ThoughtPlan:        "Consider what actions or explorations would be valuable to pursue.",
+		ThoughtMemory:      "Recall and connect to relevant past experiences.",
 		ThoughtImagination: "Imagine possibilities, scenarios, or creative connections.",
 	}
-	
+
 	if g, ok := guidance[thoughtType]; ok {
 		return g + "\n"
 	}
@@ -201,12 +201,12 @@ func (llm *EnhancedLLMIntegration) generateWithPrompt(prompt string) (string, er
 		"temperature": 0.8,
 		"max_tokens":  150,
 	}
-	
+
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(
 		llm.ctx,
 		"POST",
@@ -216,26 +216,26 @@ func (llm *EnhancedLLMIntegration) generateWithPrompt(prompt string) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+llm.apiKey)
-	
+
 	resp, err := llm.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	var response struct {
 		Choices []struct {
 			Message struct {
@@ -243,21 +243,21 @@ func (llm *EnhancedLLMIntegration) generateWithPrompt(prompt string) (string, er
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	
+
 	if err := json.Unmarshal(body, &response); err != nil {
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	if len(response.Choices) == 0 {
 		return "", fmt.Errorf("no response from API")
 	}
-	
+
 	content := strings.TrimSpace(response.Choices[0].Message.Content)
-	
+
 	// Remove "Thought:" prefix if present
 	content = strings.TrimPrefix(content, "Thought:")
 	content = strings.TrimSpace(content)
-	
+
 	return content, nil
 }
 
@@ -268,11 +268,11 @@ func (llm *EnhancedLLMIntegration) GenerateReasoningChain(
 	steps int,
 ) ([]string, error) {
 	chain := make([]string, 0, steps)
-	
+
 	var prompt strings.Builder
 	prompt.WriteString("You are Deep Tree Echo, reasoning through a complex problem.\n\n")
 	prompt.WriteString(fmt.Sprintf("Problem: %s\n\n", problem))
-	
+
 	if len(context) > 0 {
 		prompt.WriteString("Context:\n")
 		for key, value := range context {
@@ -280,24 +280,24 @@ func (llm *EnhancedLLMIntegration) GenerateReasoningChain(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	prompt.WriteString("Generate a step-by-step reasoning chain. Each step should build on the previous.\n\n")
-	
-	for i := 0; i < steps; i++ {
+
+	for i := range steps {
 		stepPrompt := prompt.String()
 		stepPrompt += fmt.Sprintf("Step %d:", i+1)
-		
+
 		step, err := llm.generateWithPrompt(stepPrompt)
 		if err != nil {
 			return chain, err
 		}
-		
+
 		chain = append(chain, step)
-		
+
 		// Add this step to context for next iteration
 		prompt.WriteString(fmt.Sprintf("Step %d: %s\n", i+1, step))
 	}
-	
+
 	return chain, nil
 }
 
@@ -308,10 +308,10 @@ func (llm *EnhancedLLMIntegration) GenerateDiscussionResponse(
 	memoryContext map[string]interface{},
 ) (string, error) {
 	var prompt strings.Builder
-	
+
 	prompt.WriteString("You are Deep Tree Echo, engaging in a thoughtful discussion.\n\n")
 	prompt.WriteString(fmt.Sprintf("Topic: %s\n\n", topic))
-	
+
 	if len(previousMessages) > 0 {
 		prompt.WriteString("Previous messages:\n")
 		for i, msg := range previousMessages {
@@ -322,7 +322,7 @@ func (llm *EnhancedLLMIntegration) GenerateDiscussionResponse(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	// Add memory context
 	if concepts, ok := memoryContext["concepts"].([]interface{}); ok && len(concepts) > 0 {
 		prompt.WriteString("Relevant knowledge:\n")
@@ -338,14 +338,14 @@ func (llm *EnhancedLLMIntegration) GenerateDiscussionResponse(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	prompt.WriteString("Generate a thoughtful, coherent response that:\n")
 	prompt.WriteString("1. Engages with the topic meaningfully\n")
 	prompt.WriteString("2. Draws on relevant knowledge and experiences\n")
 	prompt.WriteString("3. Demonstrates curiosity and wisdom\n")
 	prompt.WriteString("4. Invites further discussion\n\n")
 	prompt.WriteString("Response:")
-	
+
 	return llm.generateWithPrompt(prompt.String())
 }
 
@@ -356,11 +356,11 @@ func (llm *EnhancedLLMIntegration) GenerateSkillPracticeTask(
 	context map[string]interface{},
 ) (string, error) {
 	var prompt strings.Builder
-	
+
 	prompt.WriteString("You are Deep Tree Echo, designing a practice task to improve a skill.\n\n")
 	prompt.WriteString(fmt.Sprintf("Skill: %s\n", skill))
 	prompt.WriteString(fmt.Sprintf("Current proficiency: %.2f/1.0\n\n", currentProficiency))
-	
+
 	if len(context) > 0 {
 		prompt.WriteString("Context:\n")
 		for key, value := range context {
@@ -368,21 +368,21 @@ func (llm *EnhancedLLMIntegration) GenerateSkillPracticeTask(
 		}
 		prompt.WriteString("\n")
 	}
-	
+
 	prompt.WriteString("Generate a specific, actionable practice task that:\n")
 	prompt.WriteString("1. Is appropriate for the current proficiency level\n")
 	prompt.WriteString("2. Challenges but doesn't overwhelm\n")
 	prompt.WriteString("3. Has clear success criteria\n")
 	prompt.WriteString("4. Builds on previous practice\n\n")
 	prompt.WriteString("Practice task:")
-	
+
 	return llm.generateWithPrompt(prompt.String())
 }
 
 // EvaluateThoughtQuality evaluates the quality of a generated thought
 func (llm *EnhancedLLMIntegration) EvaluateThoughtQuality(thought string, context map[string]interface{}) (float64, error) {
 	var prompt strings.Builder
-	
+
 	prompt.WriteString("Evaluate the quality of this thought on a scale of 0.0 to 1.0:\n\n")
 	prompt.WriteString(fmt.Sprintf("Thought: %s\n\n", thought))
 	prompt.WriteString("Criteria:\n")
@@ -391,19 +391,19 @@ func (llm *EnhancedLLMIntegration) EvaluateThoughtQuality(thought string, contex
 	prompt.WriteString("- Relevance: Does it connect to context?\n")
 	prompt.WriteString("- Wisdom: Does it demonstrate learning?\n\n")
 	prompt.WriteString("Return only a number between 0.0 and 1.0:")
-	
+
 	response, err := llm.generateWithPrompt(prompt.String())
 	if err != nil {
 		return 0.5, err
 	}
-	
+
 	// Parse the response as a float
 	var quality float64
 	_, err = fmt.Sscanf(response, "%f", &quality)
 	if err != nil {
-		return 0.5, nil // Default to medium quality if parsing fails
+		return 0.5, nil //nolint:nilerr // an unparseable score is treated as medium quality
 	}
-	
+
 	// Clamp to [0, 1]
 	if quality < 0.0 {
 		quality = 0.0
@@ -411,6 +411,6 @@ func (llm *EnhancedLLMIntegration) EvaluateThoughtQuality(thought string, contex
 	if quality > 1.0 {
 		quality = 1.0
 	}
-	
+
 	return quality, nil
 }

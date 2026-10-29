@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/EchoCog/echollama/fs"
 	fsggml "github.com/EchoCog/echollama/fs/ggml"
 	"github.com/EchoCog/echollama/ml"
 	"github.com/EchoCog/echollama/ml/backend/ggml"
 	"github.com/EchoCog/echollama/ml/nn"
 	"github.com/EchoCog/echollama/model/input"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParseTags(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/EchoCog/echollama/fs/ggml"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pdevine/tensor"
 )
 

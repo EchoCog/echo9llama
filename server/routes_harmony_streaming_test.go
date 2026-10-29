@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/EchoCog/echollama/api"
 	"github.com/EchoCog/echollama/discover"
 	"github.com/EchoCog/echollama/fs/ggml"
 	"github.com/EchoCog/echollama/llm"
+	"github.com/gin-gonic/gin"
 )
 
 func getTestTools() []api.Tool {

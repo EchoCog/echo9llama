@@ -11,65 +11,65 @@ import (
 
 // PersistenceLayer manages persistent storage of cognitive states
 type PersistenceLayer struct {
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
-	
+	mu     sync.RWMutex
+	ctx    context.Context //nolint:containedctx // lifecycle context owned by this layer
+	cancel context.CancelFunc
+
 	// Supabase client
-	supabase        *memory.SupabaseClient
-	
+	supabase *memory.SupabaseClient
+
 	// Persistence configuration
-	config          *PersistenceConfig
-	
+	config *PersistenceConfig
+
 	// Persistence queues
-	thoughtQueue    chan *Thought
-	memoryQueue     chan *PersistentMemoryNode
-	identityQueue   chan *IdentitySnapshot
-	episodeQueue    chan *Episode
-	
+	thoughtQueue  chan *Thought
+	memoryQueue   chan *PersistentMemoryNode
+	identityQueue chan *IdentitySnapshot
+	episodeQueue  chan *Episode
+
 	// Batch processing
-	batchProcessor  *BatchProcessor
-	
+	batchProcessor *BatchProcessor
+
 	// Sync state
-	lastSync        time.Time
-	syncInterval    time.Duration
-	
+	lastSync     time.Time
+	syncInterval time.Duration
+
 	// Metrics
-	metrics         *PersistenceMetrics
-	
+	metrics *PersistenceMetrics
+
 	// Running state
-	running         bool
+	running bool
 }
 
 // PersistenceConfig configures persistence behavior
 type PersistenceConfig struct {
 	// Auto-save settings
-	AutoSaveEnabled     bool
-	AutoSaveInterval    time.Duration
-	
+	AutoSaveEnabled  bool
+	AutoSaveInterval time.Duration
+
 	// Batch settings
-	BatchSize           int
-	BatchFlushInterval  time.Duration
-	
+	BatchSize          int
+	BatchFlushInterval time.Duration
+
 	// Retention settings
-	ThoughtRetentionDays    int
-	EpisodeRetentionDays    int
-	SnapshotRetentionDays   int
-	
+	ThoughtRetentionDays  int
+	EpisodeRetentionDays  int
+	SnapshotRetentionDays int
+
 	// Compression
-	CompressOldMemories     bool
+	CompressOldMemories      bool
 	CompressionThresholdDays int
 }
 
 // BatchProcessor processes persistence operations in batches
 type BatchProcessor struct {
-	mu              sync.RWMutex
-	thoughtBatch    []*Thought
-	memoryBatch     []*PersistentMemoryNode
-	identityBatch   []*IdentitySnapshot
-	episodeBatch    []*Episode
-	maxBatchSize    int
-	lastFlush       time.Time
+	mu            sync.RWMutex
+	thoughtBatch  []*Thought
+	memoryBatch   []*PersistentMemoryNode
+	identityBatch []*IdentitySnapshot
+	episodeBatch  []*Episode
+	maxBatchSize  int
+	lastFlush     time.Time
 }
 
 // PersistentMemoryNode represents a node in the hypergraph memory for persistence
@@ -97,49 +97,49 @@ type IdentitySnapshot struct {
 
 // Episode represents an episodic memory
 type Episode struct {
-	ID          string
-	StartTime   time.Time
-	EndTime     time.Time
-	Summary     string
-	Thoughts    []string
-	Importance  float64
-	Emotional   float64
-	Context     map[string]interface{}
+	ID         string
+	StartTime  time.Time
+	EndTime    time.Time
+	Summary    string
+	Thoughts   []string
+	Importance float64
+	Emotional  float64
+	Context    map[string]interface{}
 }
 
 // PersistenceMetrics tracks persistence performance
 type PersistenceMetrics struct {
-	mu                  sync.RWMutex
-	ThoughtsSaved       int64
-	MemoriesSaved       int64
-	SnapshotsSaved      int64
-	EpisodesSaved       int64
-	SaveErrors          int64
-	AvgSaveLatency      time.Duration
-	LastSuccessfulSync  time.Time
+	mu                 sync.RWMutex
+	ThoughtsSaved      int64
+	MemoriesSaved      int64
+	SnapshotsSaved     int64
+	EpisodesSaved      int64
+	SaveErrors         int64
+	AvgSaveLatency     time.Duration
+	LastSuccessfulSync time.Time
 }
 
 // NewPersistenceLayer creates a new persistence layer
 func NewPersistenceLayer(ctx context.Context, supabaseURL, supabaseKey string) (*PersistenceLayer, error) {
 	layerCtx, cancel := context.WithCancel(ctx)
-	
+
 	// Initialize Supabase client
 	supabase := memory.NewSupabaseClient(supabaseURL, supabaseKey)
-	
+
 	pl := &PersistenceLayer{
-		ctx:             layerCtx,
-		cancel:          cancel,
-		supabase:        supabase,
-		config:          DefaultPersistenceConfig(),
-		thoughtQueue:    make(chan *Thought, 1000),
-		memoryQueue:     make(chan *PersistentMemoryNode, 1000),
-		identityQueue:   make(chan *IdentitySnapshot, 100),
-		episodeQueue:    make(chan *Episode, 100),
-		batchProcessor:  NewBatchProcessor(100),
-		syncInterval:    5 * time.Minute,
-		metrics:         NewPersistenceMetrics(),
+		ctx:            layerCtx,
+		cancel:         cancel,
+		supabase:       supabase,
+		config:         DefaultPersistenceConfig(),
+		thoughtQueue:   make(chan *Thought, 1000),
+		memoryQueue:    make(chan *PersistentMemoryNode, 1000),
+		identityQueue:  make(chan *IdentitySnapshot, 100),
+		episodeQueue:   make(chan *Episode, 100),
+		batchProcessor: NewBatchProcessor(100),
+		syncInterval:   5 * time.Minute,
+		metrics:        NewPersistenceMetrics(),
 	}
-	
+
 	return pl, nil
 }
 
@@ -162,33 +162,33 @@ func DefaultPersistenceConfig() *PersistenceConfig {
 func (pl *PersistenceLayer) Start() error {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
-	
+
 	if pl.running {
 		return fmt.Errorf("persistence layer already running")
 	}
-	
+
 	// Start queue processors
 	go pl.processThoughtQueue()
 	go pl.processMemoryQueue()
 	go pl.processIdentityQueue()
 	go pl.processEpisodeQueue()
-	
+
 	// Start auto-save if enabled
 	if pl.config.AutoSaveEnabled {
 		go pl.autoSaveLoop()
 	}
-	
+
 	// Start batch flusher
 	go pl.batchFlusher()
-	
+
 	// Start cleanup routine
 	go pl.cleanupLoop()
-	
+
 	pl.running = true
 	pl.lastSync = time.Now()
-	
+
 	fmt.Println("💾 Persistence Layer: Started with Supabase backend")
-	
+
 	return nil
 }
 
@@ -196,23 +196,23 @@ func (pl *PersistenceLayer) Start() error {
 func (pl *PersistenceLayer) Stop() error {
 	pl.mu.Lock()
 	defer pl.mu.Unlock()
-	
+
 	if !pl.running {
 		return fmt.Errorf("persistence layer not running")
 	}
-	
+
 	// Flush remaining batches
 	if err := pl.batchProcessor.FlushAll(pl.supabase); err != nil {
 		fmt.Printf("⚠️  Error flushing batches on shutdown: %v\n", err)
 	}
-	
+
 	// Cancel context
 	pl.cancel()
-	
+
 	pl.running = false
-	
+
 	fmt.Println("💾 Persistence Layer: Stopped")
-	
+
 	return nil
 }
 
@@ -267,34 +267,34 @@ func (pl *PersistenceLayer) SaveEpisode(episode *Episode) error {
 // LoadRecentThoughts loads recent thoughts from persistence
 func (pl *PersistenceLayer) LoadRecentThoughts(limit int) ([]*Thought, error) {
 	filters := map[string]interface{}{}
-	
+
 	results, err := pl.supabase.Query("thoughts", filters, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load thoughts: %w", err)
 	}
-	
+
 	thoughts := make([]*Thought, 0)
 	for _, result := range results {
 		thought := pl.resultToThought(result)
 		thoughts = append(thoughts, thought)
 	}
-	
+
 	return thoughts, nil
 }
 
 // LoadIdentitySnapshot loads the most recent identity snapshot
 func (pl *PersistenceLayer) LoadIdentitySnapshot() (*IdentitySnapshot, error) {
 	filters := map[string]interface{}{}
-	
+
 	results, err := pl.supabase.Query("identity_snapshots", filters, 1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load identity snapshot: %w", err)
 	}
-	
+
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no identity snapshots found")
 	}
-	
+
 	return pl.resultToIdentitySnapshot(results[0]), nil
 }
 
@@ -303,18 +303,18 @@ func (pl *PersistenceLayer) LoadMemoryGraph() ([]*PersistentMemoryNode, error) {
 	filters := map[string]interface{}{
 		"importance": map[string]interface{}{"gt": 0.5},
 	}
-	
+
 	results, err := pl.supabase.Query("memory_nodes", filters, 1000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memory graph: %w", err)
 	}
-	
+
 	nodes := make([]*PersistentMemoryNode, 0)
 	for _, result := range results {
 		node := pl.resultToMemoryNode(result)
 		nodes = append(nodes, node)
 	}
-	
+
 	return nodes, nil
 }
 
@@ -369,7 +369,7 @@ func (pl *PersistenceLayer) processEpisodeQueue() {
 func (pl *PersistenceLayer) autoSaveLoop() {
 	ticker := time.NewTicker(pl.config.AutoSaveInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pl.ctx.Done():
@@ -391,7 +391,7 @@ func (pl *PersistenceLayer) autoSaveLoop() {
 func (pl *PersistenceLayer) batchFlusher() {
 	ticker := time.NewTicker(pl.config.BatchFlushInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pl.ctx.Done():
@@ -411,7 +411,7 @@ func (pl *PersistenceLayer) batchFlusher() {
 func (pl *PersistenceLayer) cleanupLoop() {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pl.ctx.Done():
@@ -428,19 +428,19 @@ func (pl *PersistenceLayer) performCleanup() {
 	pl.supabase.Delete("thoughts", map[string]interface{}{
 		"timestamp": map[string]interface{}{"lt": thoughtCutoff.Format(time.RFC3339)},
 	})
-	
+
 	// Delete old episodes
 	episodeCutoff := time.Now().AddDate(0, 0, -pl.config.EpisodeRetentionDays)
 	pl.supabase.Delete("episodes", map[string]interface{}{
 		"start_time": map[string]interface{}{"lt": episodeCutoff.Format(time.RFC3339)},
 	})
-	
+
 	// Delete old snapshots
 	snapshotCutoff := time.Now().AddDate(0, 0, -pl.config.SnapshotRetentionDays)
 	pl.supabase.Delete("identity_snapshots", map[string]interface{}{
 		"timestamp": map[string]interface{}{"lt": snapshotCutoff.Format(time.RFC3339)},
 	})
-	
+
 	fmt.Println("🧹 Persistence Layer: Cleanup completed")
 }
 
@@ -451,15 +451,15 @@ func (pl *PersistenceLayer) resultToThought(result map[string]interface{}) *Thou
 		ID:      result["id"].(string),
 		Content: result["content"].(string),
 	}
-	
+
 	if timestamp, ok := result["timestamp"].(time.Time); ok {
 		thought.Timestamp = timestamp
 	}
-	
+
 	if importance, ok := result["importance"].(float64); ok {
 		thought.Importance = importance
 	}
-	
+
 	return thought
 }
 
@@ -469,11 +469,11 @@ func (pl *PersistenceLayer) resultToMemoryNode(result map[string]interface{}) *P
 		Type:    result["type"].(string),
 		Content: result["content"].(string),
 	}
-	
+
 	if importance, ok := result["importance"].(float64); ok {
 		node.Importance = importance
 	}
-	
+
 	return node
 }
 
@@ -482,11 +482,11 @@ func (pl *PersistenceLayer) resultToIdentitySnapshot(result map[string]interface
 		ID:   result["id"].(string),
 		Name: result["name"].(string),
 	}
-	
+
 	if coherence, ok := result["coherence"].(float64); ok {
 		snapshot.Coherence = coherence
 	}
-	
+
 	return snapshot
 }
 
@@ -494,9 +494,17 @@ func (pl *PersistenceLayer) resultToIdentitySnapshot(result map[string]interface
 func (pl *PersistenceLayer) GetMetrics() *PersistenceMetrics {
 	pl.metrics.mu.RLock()
 	defer pl.metrics.mu.RUnlock()
-	
-	metrics := *pl.metrics
-	return &metrics
+
+	// Return a snapshot without the mutex
+	return &PersistenceMetrics{
+		ThoughtsSaved:      pl.metrics.ThoughtsSaved,
+		MemoriesSaved:      pl.metrics.MemoriesSaved,
+		SnapshotsSaved:     pl.metrics.SnapshotsSaved,
+		EpisodesSaved:      pl.metrics.EpisodesSaved,
+		SaveErrors:         pl.metrics.SaveErrors,
+		AvgSaveLatency:     pl.metrics.AvgSaveLatency,
+		LastSuccessfulSync: pl.metrics.LastSuccessfulSync,
+	}
 }
 
 // BatchProcessor implementation
@@ -539,7 +547,7 @@ func (bp *BatchProcessor) AddEpisode(episode *Episode) {
 func (bp *BatchProcessor) ShouldFlush(batchSize int) bool {
 	bp.mu.RLock()
 	defer bp.mu.RUnlock()
-	
+
 	return len(bp.thoughtBatch) >= batchSize ||
 		len(bp.memoryBatch) >= batchSize ||
 		len(bp.identityBatch) >= batchSize ||
@@ -549,7 +557,7 @@ func (bp *BatchProcessor) ShouldFlush(batchSize int) bool {
 func (bp *BatchProcessor) FlushAll(supabase *memory.SupabaseClient) error {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
-	
+
 	// Flush thoughts
 	if len(bp.thoughtBatch) > 0 {
 		for _, thought := range bp.thoughtBatch {
@@ -568,16 +576,16 @@ func (bp *BatchProcessor) FlushAll(supabase *memory.SupabaseClient) error {
 		}
 		bp.thoughtBatch = bp.thoughtBatch[:0]
 	}
-	
+
 	// Flush memories
 	if len(bp.memoryBatch) > 0 {
 		for _, memory := range bp.memoryBatch {
 			data := map[string]interface{}{
-				"id":          memory.ID,
-				"type":        memory.Type,
-				"content":     memory.Content,
-				"importance":  memory.Importance,
-				"timestamp":   memory.Timestamp,
+				"id":         memory.ID,
+				"type":       memory.Type,
+				"content":    memory.Content,
+				"importance": memory.Importance,
+				"timestamp":  memory.Timestamp,
 			}
 			if err := supabase.Insert("memory_nodes", data); err != nil {
 				return fmt.Errorf("failed to insert memory: %w", err)
@@ -585,15 +593,15 @@ func (bp *BatchProcessor) FlushAll(supabase *memory.SupabaseClient) error {
 		}
 		bp.memoryBatch = bp.memoryBatch[:0]
 	}
-	
+
 	// Flush identity snapshots
 	if len(bp.identityBatch) > 0 {
 		for _, snapshot := range bp.identityBatch {
 			data := map[string]interface{}{
-				"id":        snapshot.ID,
-				"timestamp": snapshot.Timestamp,
-				"name":      snapshot.Name,
-				"coherence": snapshot.Coherence,
+				"id":         snapshot.ID,
+				"timestamp":  snapshot.Timestamp,
+				"name":       snapshot.Name,
+				"coherence":  snapshot.Coherence,
 				"iterations": snapshot.Iterations,
 			}
 			if err := supabase.Insert("identity_snapshots", data); err != nil {
@@ -602,7 +610,7 @@ func (bp *BatchProcessor) FlushAll(supabase *memory.SupabaseClient) error {
 		}
 		bp.identityBatch = bp.identityBatch[:0]
 	}
-	
+
 	// Flush episodes
 	if len(bp.episodeBatch) > 0 {
 		for _, episode := range bp.episodeBatch {
@@ -620,9 +628,9 @@ func (bp *BatchProcessor) FlushAll(supabase *memory.SupabaseClient) error {
 		}
 		bp.episodeBatch = bp.episodeBatch[:0]
 	}
-	
+
 	bp.lastFlush = time.Now()
-	
+
 	return nil
 }
 

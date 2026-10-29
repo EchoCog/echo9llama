@@ -141,9 +141,6 @@ func main() {
 	// Graceful shutdown
 	defer func() {
 		log.Println("🌊 Shutting down HGQL Server...")
-		if server.Identity != nil {
-			// Perform any cleanup needed
-		}
 	}()
 
 	if err := server.Router.Run(addr); err != nil {
